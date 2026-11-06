@@ -463,13 +463,6 @@ kbd { font-family: var(--mono); font-size: .8em; border: 1px solid currentColor;
 .strip button.dark { background: #161415; }
 .strip button:hover { transform: translateY(-4px); }
 .strip img { height: 100%; width: auto; object-fit: contain; }
-.audio {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1px solid currentColor; background: none; border-radius: 99px; padding: 7px 14px 7px 10px;
-  transition: background .2s, color .2s;
-}
-.audio:hover, .audio.playing { background: var(--green); border-color: var(--green); color: var(--ink); }
-.audio.playing .audio__icon { animation: bob .6s infinite; }
 @media (max-width: 860px) {
   .exhibit, .exhibit:nth-child(even) { grid-template-columns: 1fr; }
   .exhibit:nth-child(even) .walltext { order: 0; }

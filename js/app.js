@@ -201,8 +201,7 @@
         h("h3", {}, p.title),
         h("p", { class: "walltext__kind mono" }, p.kind),
         h("p", {}, p.text),
-        p.badge ? h("span", { class: "badge mono" }, p.badge) : null,
-        audioBtn(`p:${p.slug}`, `Audio guide · Stop ${pad(i + 1)}`)),
+        p.badge ? h("span", { class: "badge mono" }, p.badge) : null),
       h("div", { class: "exhibit__media" },
         h("button", { class: "exhibit__hero", "data-cursor": "ENTER", "aria-label": `Open ${p.title} exhibit`, onclick: () => viewer.open(items, heroIdx) },
           h("img", { src: full(p.hero), alt: `${p.title} — ${p.kind}`, loading: "lazy", decoding: "async" })),
@@ -232,8 +231,7 @@
           m.process.map((id, j) => h("button", {
             class: "polaroid", style: `--tilt:${j % 2 ? 4 : -3}deg`, "data-cursor": "VIEW",
             "aria-label": `${m.title} process photo ${j + 1}`, onclick: () => viewer.open(items, j + 1),
-          }, img(id, ""), h("span", {}, "process")))),
-        audioBtn(`m:${m.slug}`, `Audio guide · Wall ${pad(i + 1)}`))));
+          }, img(id, ""), h("span", {}, "process")))))));
   });
   // spray-paint reveal
   const sprayIO = new IntersectionObserver((ens) => ens.forEach((en) => {
@@ -272,42 +270,6 @@
     toast("Opening your email app. The artist has been notified (well, almost).");
   });
   $("#year").textContent = new Date().getFullYear();
-
-  /* ---------------- AUDIO GUIDE (speech synthesis) ---------------- */
-  function audioBtn(key, label) {
-    return h("button", { class: "audio mono", "data-say": key },
-      h("span", { class: "audio__icon" }, "🎧"), " ", h("span", { class: "audio__label" }, label));
-  }
-  const canSpeak = "speechSynthesis" in window;
-  const scripts = {
-    bio: `Welcome to the studio. ${ARTIST.bio}`,
-    ...Object.fromEntries(PROJECTS.map((p) => [`p:${p.slug}`, `${p.title}. ${p.kind.replace(/·/g, ",")}. ${p.text}`])),
-    ...Object.fromEntries(MURALS.map((m) => [`m:${m.slug}`, `${m.title}. ${m.text}`])),
-  };
-  let speaking = null;
-  function stopSpeech() {
-    if (!canSpeak) return;
-    speechSynthesis.cancel();
-    $$(".audio.playing").forEach((b) => b.classList.remove("playing"));
-    speaking = null;
-  }
-  document.addEventListener("click", (e) => {
-    const b = e.target.closest(".audio");
-    if (!b) return;
-    if (!canSpeak) return toast("Your browser didn’t bring headphones. Reading is free, though.");
-    const key = b.dataset.say;
-    const was = speaking === key;
-    stopSpeech();
-    if (was) return;
-    const u = new SpeechSynthesisUtterance(scripts[key]);
-    u.rate = 0.98;
-    const v = speechSynthesis.getVoices().find((v) => /en[-_]/i.test(v.lang) && /natural|google|samantha|daniel/i.test(v.name));
-    if (v) u.voice = v;
-    u.onend = () => { b.classList.remove("playing"); speaking = null; };
-    speaking = key;
-    b.classList.add("playing");
-    speechSynthesis.speak(u);
-  });
 
   /* ---------------- VIEWER ---------------- */
   const viewer = (() => {
