@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Koceyan — Alex Koceyan, Illustrator · Designer · Muralist</title>
+  <meta name="description" content="Alex Koceyan is an illustrator, designer, and muralist based in Metro Detroit. Step inside The Koceyan, a museum of his illustration, graphic design, and murals.">
+  <meta property="og:title" content="The Koceyan — Alex Koceyan">
+  <meta property="og:description" content="A museum of illustration, design & murals. Metro Detroit. Admission free.">
+  <meta property="og:image" content="img/il-07.jpg">
+  <link rel="icon" href="img/t/il-07.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Rubik+Spray+Paint&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===================== ENTRY TICKET ===================== -->
+<div id="entry" class="entry" role="dialog" aria-label="Museum entrance">
+  <div class="curtain curtain--l"></div>
+  <div class="curtain curtain--r"></div>
+  <div class="entry__inner">
+    <p class="entry__hint mono">Welcome. Please present your ticket.</p>
+    <button class="ticket" id="ticket" aria-label="Tear ticket to enter the museum">
+      <span class="ticket__main">
+        <span class="mono ticket__small">Metro Detroit · Est. by the artist</span>
+        <span class="ticket__title">The Koceyan</span>
+        <span class="ticket__sub">Illustration · Design · Murals</span>
+        <span class="mono ticket__row"><span>Admit one</span><span id="ticketNo">No. 000000</span></span>
+      </span>
+      <span class="ticket__stub">
+        <span class="mono">Tear<br>to<br>enter</span>
+      </span>
+    </button>
+    <button class="entry__skip mono" id="skipEntry">skip the line →</button>
+  </div>
+</div>
+
+<!-- ===================== CURSOR ===================== -->
+<div class="cursor" aria-hidden="true"><span class="cursor__label"></span></div>
+
+<!-- ===================== HEADER / NAV ===================== -->
+<header class="topbar">
+  <a href="#lobby" class="topbar__logo" aria-label="The Koceyan — back to the lobby">
+    <img src="img/logo.webp" alt="Alex Koceyan" width="155" height="30">
+  </a>
+  <nav class="topbar__nav mono" aria-label="Galleries">
+    <a href="#illustration" data-room="illustration">I · Illustration</a>
+    <a href="#design" data-room="design">II · Design</a>
+    <a href="#murals" data-room="murals">III · Murals</a>
+    <a href="#studio" data-room="studio">Studio</a>
+    <a href="#desk" data-room="desk" class="topbar__cta">Commission</a>
+  </nav>
+  <button class="mapbtn mono" id="mapBtn" aria-expanded="false" aria-controls="floorplan">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z M9 3v15 M15 6v15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    Map
+  </button>
+</header>
+
+<!-- ===================== FLOOR PLAN ===================== -->
+<div class="floorplan" id="floorplan" hidden>
+  <div class="floorplan__card">
+    <div class="floorplan__head">
+      <span class="mono">Floor plan · Level 1</span>
+      <button class="iconbtn" id="mapClose" aria-label="Close map">✕</button>
+    </div>
+    <svg class="plan" viewBox="0 0 400 300" role="img" aria-label="Museum floor plan">
+      <g class="plan__room" data-go="illustration"><rect x="10" y="10" width="180" height="150"/><text x="100" y="78">I</text><text x="100" y="100" class="plan__sm">Illustration</text></g>
+      <g class="plan__room" data-go="design"><rect x="210" y="10" width="180" height="150"/><text x="300" y="78">II</text><text x="300" y="100" class="plan__sm">Design</text></g>
+      <g class="plan__room plan__room--yard" data-go="murals"><rect x="10" y="180" width="180" height="110"/><text x="100" y="230">III</text><text x="100" y="252" class="plan__sm">Mural Yard</text></g>
+      <g class="plan__room" data-go="studio"><rect x="210" y="180" width="85" height="110"/><text x="252" y="240" class="plan__sm">Studio</text></g>
+      <g class="plan__room" data-go="desk"><rect x="305" y="180" width="85" height="110"/><text x="347" y="240" class="plan__sm">Desk</text></g>
+      <g class="plan__room plan__room--lobby" data-go="lobby"><rect x="150" y="135" width="100" height="60" rx="4"/><text x="200" y="170" class="plan__sm">Lobby</text></g>
+      <circle class="plan__you" r="7" cx="200" cy="165"/>
+    </svg>
+    <p class="mono floorplan__foot">● You are here</p>
+  </div>
+</div>
+
+<main>
+  <!-- ===================== LOBBY ===================== -->
+  <section id="lobby" class="lobby" data-room="lobby">
+    <div class="lobby__wall" id="lobbyWall" aria-hidden="true"></div>
+    <div class="lobby__dark" aria-hidden="true"></div>
+    <div class="lobby__content">
+      <p class="mono lobby__kicker">A museum of one artist · <span style="white-space:nowrap">Metro Detroit</span></p>
+      <h1 class="lobby__title">
+        <span class="line">The</span>
+        <span class="line"><em>Koceyan</em></span>
+      </h1>
+      <p class="lobby__lede">Illustrator. Designer. Muralist.<br>Grab a flashlight. Move it around. The lights are low on purpose.</p>
+    </div>
+    <a href="#illustration" class="lobby__enter" data-cursor="ENTER">
+      <span>Enter the galleries</span>
+      <span class="lobby__enter-arrow" aria-hidden="true">↓</span>
+    </a>
+  </section>
+
+  <div class="marquee mono" aria-hidden="true">
+    <div class="marquee__track" id="marquee"></div>
+  </div>
+
+  <!-- ===================== DIRECTORY ===================== -->
+  <section class="directory" aria-labelledby="dirTitle">
+    <div class="directory__sign">
+      <h2 id="dirTitle" class="mono directory__title">Directory</h2>
+      <ul class="directory__list" id="directory"></ul>
+    </div>
+    <aside class="directory__rules">
+      <h3 class="mono">House rules</h3>
+      <ol>
+        <li>Look closely. Every piece zooms.</li>
+        <li>Press <kbd>←</kbd> <kbd>→</kbd> to walk between works.</li>
+        <li>Press the 🎧 for the audio guide.</li>
+        <li>Please do not touch the art. (We will know.)</li>
+      </ol>
+    </aside>
+  </section>
+
+  <!-- ===================== GALLERY I ===================== -->
+  <section id="illustration" class="gallery gallery--salon" data-room="illustration">
+    <header class="gallery__head">
+      <p class="mono gallery__no">Gallery I</p>
+      <h2 class="gallery__title">The Illustration <em>Salon</em></h2>
+      <p class="gallery__intro">Hung floor to ceiling, the way the old salons did it. Comic heroes next to Armenian folk motifs next to a frog with a story to tell.</p>
+      <div class="rooms" role="tablist" aria-label="Rooms" id="roomTabs"></div>
+      <p class="mono rooms__blurb" id="roomBlurb" aria-live="polite"></p>
+    </header>
+    <div class="salon" id="salon"></div>
+  </section>
+
+  <!-- ===================== GALLERY II ===================== -->
+  <section id="design" class="gallery gallery--cube" data-room="design">
+    <header class="gallery__head">
+      <p class="mono gallery__no">Gallery II</p>
+      <h2 class="gallery__title">Identity <em>&amp;</em> Design</h2>
+      <p class="gallery__intro">Seven exhibits. Logos that survived a redesign, a yard sign that won an election, and a hundred T-shirt concepts.</p>
+    </header>
+    <div class="exhibits" id="exhibits"></div>
+  </section>
+
+  <!-- ===================== GALLERY III ===================== -->
+  <section id="murals" class="gallery gallery--yard" data-room="murals">
+    <header class="gallery__head">
+      <p class="mono gallery__no">Gallery III · Outdoors</p>
+      <h2 class="gallery__title spray">The Mural Yard</h2>
+      <p class="gallery__intro" id="muralIntro"></p>
+    </header>
+    <div class="walls" id="walls"></div>
+  </section>
+
+  <!-- ===================== STUDIO ===================== -->
+  <section id="studio" class="studio" data-room="studio">
+    <div class="studio__portrait">
+      <figure class="frame frame--wood">
+        <img src="img/t/portrait.webp" alt="Alex Koceyan drawing at his desk" loading="lazy" width="807" height="900">
+      </figure>
+      <span class="mono studio__tag">Portrait of the artist, at work</span>
+    </div>
+    <div class="studio__text">
+      <p class="mono gallery__no">The Artist’s Studio</p>
+      <h2 class="gallery__title">Meet <em>Alex</em></h2>
+      <p class="studio__bio" id="bio"></p>
+      <button class="audio mono" data-say="bio"><span class="audio__icon">🎧</span> <span class="audio__label">Audio guide · Stop 00</span></button>
+      <dl class="facts" id="facts"></dl>
+      <div class="studio__sticker">
+        <img src="img/enough-talk.png" alt="Enough talk…" loading="lazy" width="1140" height="360">
+        <a href="#illustration"><img src="img/see-the-work.png" alt="Let's see the work" loading="lazy" width="1140" height="360"></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DESK ===================== -->
+  <section id="desk" class="desk" data-room="desk">
+    <div class="desk__head">
+      <p class="mono gallery__no">Front Desk</p>
+      <h2 class="gallery__title">Commission <em>a piece</em></h2>
+      <p class="gallery__intro">Got a blank wall, a brand without a face, or a character who needs drawing? Fill out the slip and it goes straight to Alex’s inbox.</p>
+      <div class="desk__direct">
+        <a class="mono" id="mailLink" href="#">✉ email</a>
+        <a class="mono" id="telLink" href="#">☏ phone</a>
+      </div>
+    </div>
+    <form class="slip" id="slip">
+      <div class="slip__top mono"><span>Commission request</span><span id="slipNo"></span></div>
+      <fieldset class="slip__kinds">
+        <legend class="mono">I’m after a…</legend>
+        <label><input type="radio" name="kind" value="Mural" checked><span>Mural</span></label>
+        <label><input type="radio" name="kind" value="Illustration"><span>Illustration</span></label>
+        <label><input type="radio" name="kind" value="Logo / Brand identity"><span>Logo / Brand</span></label>
+        <label><input type="radio" name="kind" value="Something else"><span>Something else</span></label>
+      </fieldset>
+      <label class="slip__field"><span class="mono">Your name</span><input name="name" required autocomplete="name"></label>
+      <label class="slip__field"><span class="mono">Tell him about it</span><textarea name="msg" rows="4" required placeholder="Wall size, location, deadline, the vibe…"></textarea></label>
+      <button class="slip__send" type="submit">Send to the artist →</button>
+      <p class="mono slip__note">Opens your email app with everything filled in.</p>
+    </form>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="foot__big">Thank you for visiting.</p>
+  <p class="mono">© <span id="year"></span> Alex Koceyan · All rights reserved · Based in Detroit, MI</p>
+  <p class="mono foot__small">The gift shop is closed. The artist is not.</p>
+</footer>
+
+<!-- ===================== VIEWER (LIGHTBOX) ===================== -->
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Artwork viewer" hidden>
+  <button class="iconbtn viewer__close" id="vClose" aria-label="Close">✕</button>
+  <button class="viewer__nav viewer__nav--prev" id="vPrev" aria-label="Previous work">←</button>
+  <div class="viewer__stage" id="vStage">
+    <img id="vImg" alt="">
+    <div class="loupe" id="loupe" aria-hidden="true"></div>
+  </div>
+  <button class="viewer__nav viewer__nav--next" id="vNext" aria-label="Next work">→</button>
+  <aside class="placard" id="vPlacard">
+    <p class="mono placard__no" id="vNo"></p>
+    <h3 class="placard__title" id="vTitle"></h3>
+    <p class="placard__meta" id="vMeta"></p>
+    <p class="mono placard__hint">Hover to look closer · ← → to walk</p>
+  </aside>
+</div>
+
+<div class="toast mono" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
