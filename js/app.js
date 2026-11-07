@@ -20,10 +20,6 @@
   const pad = (n) => String(n).padStart(2, "0");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
-  const store = {
-    get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
-    set(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
-  };
 
   // Full-size files that are not .jpg
   const EXT = {
@@ -47,33 +43,9 @@
     toastT = setTimeout(() => toastEl.classList.remove("show"), ms);
   }
 
-  /* ---------------- ENTRY ---------------- */
-  const entry = $("#entry");
+  /* ---------------- VISIT ---------------- */
   const visitorNo = String(Math.floor(100000 + Math.random() * 899999));
-  $("#ticketNo").textContent = "No. " + visitorNo;
-  let entered = false;
-  function enter(fast) {
-    if (entered) return;
-    entered = true;
-    store.set("koceyan-entered", "1");
-    if (!fast) $("#ticket").classList.add("torn");
-    setTimeout(() => {
-      entry.classList.add("open");
-      document.body.classList.remove("locked");
-      document.body.classList.add("loaded");
-    }, fast ? 0 : 450);
-    setTimeout(() => entry.classList.add("gone"), fast ? 900 : 1900);
-  }
-  if (store.get("koceyan-entered")) {
-    entry.classList.add("gone");
-    document.body.classList.add("loaded");
-  } else {
-    document.body.classList.add("locked");
-    $("#ticket").addEventListener("click", () => enter(false));
-    $("#skipEntry").addEventListener("click", () => enter(true));
-    addEventListener("keydown", (e) => { if (e.key === "Escape") enter(true); });
-    setTimeout(() => $("#ticket").focus({ preventScroll: true }), 300);
-  }
+  requestAnimationFrame(() => document.body.classList.add("loaded"));
 
   /* ---------------- CURSOR ---------------- */
   const cursor = $(".cursor");
@@ -384,7 +356,7 @@
     $$(".plan__room").forEach((g) => g.classList.toggle("here", g.dataset.go === current));
     const [cx, cy] = plan[current];
     you.setAttribute("cx", cx); you.setAttribute("cy", cy);
-    if (ANNOUNCE[current] && !announced.has(current) && entry.classList.contains("gone")) {
+    if (ANNOUNCE[current] && !announced.has(current)) {
       announced.add(current);
       toast(ANNOUNCE[current], 2800);
     }
