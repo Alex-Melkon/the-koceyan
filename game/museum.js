@@ -160,7 +160,7 @@
   toggle.innerHTML = '<span class="gt-sw" aria-hidden="true"><i></i></span><span class="gt-txt"><span>Museum</span><span>mode</span></span>';
   const nav = document.getElementById("nav");
   if (!nav) return;
-  nav.insertBefore(toggle, nav.querySelector(".cta"));
+  nav.appendChild(toggle);                      // after the Contact button
   nav.classList.add("has-game");
   toggle.addEventListener("click", open);
 
