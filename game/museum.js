@@ -16,7 +16,7 @@
   const RENDER_H = 360;                           // internal resolution (the retro look)
   const ROOMS = {
     lobby: { name: "LOBBY",               x0: -8,  x1: 8,   z0: -6,  z1: 6,  wall: "#2f6b3a", floor: ["#ece6d6", "#2b7a34"], gaps: { N: [-2, 2], W: [-2, 2], E: [-2, 2] } },
-    ill:   { name: "ILLUSTRATION HALL",   x0: -16, x1: 16,  z0: -36, z1: -8, wall: "#6a1f26", floor: ["#8c5c36", "#7a4c2a"], gaps: { S: [-2, 2] } },
+    ill:   { name: "ILLUSTRATION SALON",  x0: -16, x1: 16,  z0: -36, z1: -8, wall: "#6a1f26", floor: ["#8c5c36", "#7a4c2a"], gaps: { S: [-2, 2] } },
     gd:    { name: "GRAPHIC DESIGN WING", x0: -30, x1: -10, z0: -7,  z1: 7,  wall: "#e6e1d6", floor: ["#d2cdc0", "#bdb7a8"], gaps: { E: [-2, 2] } },
     mur:   { name: "THE MURAL YARD",      x0: 10,  x1: 42,  z0: -7,  z1: 17, outdoor: true },   // open air: see buildYard()
   };
@@ -29,6 +29,28 @@
     { x0: -3, x1: 3, z0: -16.6, z1: -15.4 }, { x0: -3, x1: 3, z0: -28.6, z1: -27.4 },
     { x0: -21.5, x1: -18.5, z0: -0.6, z1: 0.6 }, { x0: 24, x1: 28, z0: 4.4, z1: 5.6, out: true },
   ];
+  // a guard in every room. yaw is where they face when nobody is near; they turn to you as you come over.
+  const GUARDS = [
+    { room: "lobby", x: 6.2,  z: -4.2,  yaw: Math.PI * 0.69, look: { skin: 0x7a4a24, hair: 0x140e0a, tall: 1.03 },
+      line: "Please, no flash photography. We have standards here." },
+    { room: "ill",   x: 7,    z: -20,   yaw: Math.PI * 0.8, look: { skin: 0xf0c08a, hair: 0x6b3a18, pony: true, tall: 0.96 },
+      line: "I see you've been admiring that piece for a while now\u2026 Good taste." },
+    { room: "gd",    x: -16.5, z: 0,    yaw: Math.PI * 1.5, look: { skin: 0xc07a46, hair: 0x201610, tall: 0.99 },
+      line: "Man, if I were a recruiter, I'd hire this guy in a heartbeat. I'm not one, though. Are you?" },
+    { room: "mur",   x: 24.5, z: 1.2,   yaw: Math.PI * 0.5, out: true, look: { skin: 0x9c6b3f, hair: 0x15100c, pony: true, tall: 1.01 },
+      line: "You're not thinking of touching that, are you? I wouldn't want to start a scene." },   // stood under the lamp by the yard bench
+  ];
+  // gallery visitors — civilians musing about the art. Different heights and builds.
+  // They stand a few metres back from the wall so the player can approach from behind without triggering the art.
+  const VIEWERS = [
+    { room: "ill", x: -13, z: -32, yaw: 0, kind: "visitor", look: { civ: true, skin: 0xe8b98a, hair: 0x3a2416, top: 0x7a4b63, tall: 0.91 },
+      line: "I think there’s a deeper meaning here. Or maybe I’m just looking at birds. Hard to tell." },
+    { room: "gd", x: -22, z: -3, yaw: 0, kind: "visitor", look: { civ: true, skin: 0x9c6b3f, hair: 0x14100c, top: 0x3c6e55, pony: true, tall: 1.05 },
+      line: "Just took a picture with my flash on. These guards are rookies." },
+    { room: "mur", x: 22, z: 9.5, yaw: Math.PI, out: true, kind: "visitor", look: { civ: true, skin: 0xd8a070, hair: 0x2a1c12, top: 0x8a5a2a, tall: 0.97 },
+      line: "I believe the artist is exploring the tension between the natural and the man-made, perhaps commenting on humanity’s complicated relationship with its environment, which ultimately raises the question of… Wait, is that the GM Building?" },
+  ];
+  const NPCS = GUARDS.concat(VIEWERS);
   // freestanding walls in the yard, one mural each (the last one carries the in-progress photos)
   const SLABS = [
     { cx: 19,   cz: -3.5, w: 9.5,  h: 5.6, along: "x", nx: 0,  nz: 1 },
@@ -37,14 +59,17 @@
     { cx: 32.5, cz: 13.5, w: 10.5, h: 5.6, along: "x", nx: 0,  nz: -1 },
     { cx: 40.2, cz: 5,    w: 9.5,  h: 5.6, along: "z", nx: -1, nz: 0 },
   ];
-  const LAMPS = [{ x: 14.5, z: 7.5 }, { x: 26, z: 1.2 }, { x: 26, z: 9.2 }, { x: 36.5, z: -1 }];
-  const BLOCKERS = BENCHES.concat(
+  const LAMPS = [{ x: 26, z: 1.2 }, { x: 26, z: 9.2 }];   // the pair either side of the yard bench
+  const BLOCKERS = BENCHES.map((b) => ({ x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1, bench: true })).concat(
+    NPCS.map((q) => ({ x0: q.x - 0.38, x1: q.x + 0.38, z0: q.z - 0.38, z1: q.z + 0.38 })),
     SLABS.map((s) => (s.along === "x" ? { x0: s.cx - s.w / 2, x1: s.cx + s.w / 2, z0: s.cz - 0.3, z1: s.cz + 0.3 } : { x0: s.cx - 0.3, x1: s.cx + 0.3, z0: s.cz - s.w / 2, z1: s.cz + s.w / 2 })),
     LAMPS.map((l) => ({ x0: l.x - 0.15, x1: l.x + 0.15, z0: l.z - 0.15, z1: l.z + 0.15 })));
   const START = { x: 0, z: 1.2, yaw: 0 };
 
-  function walkable(x, z, r = R) {
-    for (const b of BLOCKERS) if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r) return false;
+  // skipBench: the camera passes this while you are sat down, so the bench right behind you is not treated as
+  // something in the way. Everything else about the view stays exactly as it is anywhere else in the museum.
+  function walkable(x, z, r = R, skipBench) {
+    for (const b of BLOCKERS) { if (skipBench && b.bench) continue; if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r) return false; }
     for (const k in ROOMS) { const m = ROOMS[k]; if (x >= m.x0 + r && x <= m.x1 - r && z >= m.z0 + r && z <= m.z1 - r) return true; }
     for (const d of DOORS) {
       if (d.ax === "z" && x >= d.x0 + r && x <= d.x1 - r && z >= d.z0 - r - 0.25 && z <= d.z1 + r + 0.25) return true;
@@ -75,16 +100,39 @@
     .game-toggle .gt-txt{display:none}.game-toggle{padding:9px 8px}
     header .logo{width:clamp(165px,22vw,280px)}   /* the bar was already too wide for small laptop windows */
   }
-  @media (max-width:720px){.game-toggle{justify-content:center;margin-top:14px;padding:13px 11px 12px}.game-toggle .gt-txt{display:block;font-size:11px}.game-toggle .gt-txt span+span::before{content:" "}}
+  /* Phones: there is no hover to flick the switch, so it demos itself — blinks twice in the off position, snaps
+     across, holds on for a beat, snaps back. It only runs while the menu is open, which is the only time it is on
+     screen. Pressing the button also throws it across straight away, so a tap feels like flipping a real switch. */
+  @media (max-width:720px){
+    .game-toggle{justify-content:center;margin-top:14px;padding:13px 11px 12px}
+    .game-toggle .gt-txt{display:block;font-size:11px}
+    .game-toggle .gt-txt span+span::before{content:" "}
+    .game-toggle .gt-sw i{animation:mg-demo 3.4s steps(1,end) infinite}
+    .game-toggle:active .gt-sw i,.game-toggle.pressed .gt-sw i{left:13px;opacity:1;animation:none}
+  }
+  @keyframes mg-demo{
+    0%{left:1px;opacity:1}    12%{left:1px;opacity:.25}  24%{left:1px;opacity:1}
+    36%{left:1px;opacity:.25} 48%{left:1px;opacity:1}
+    56%{left:13px;opacity:1}  94%{left:13px;opacity:1}   100%{left:1px;opacity:1}
+  }
   @keyframes mg-blink{50%{opacity:.25}}
 
   #mg{position:fixed;inset:0;z-index:1000;background:#050505;color:#f4f1e6;font-family:${PIXEL};font-size:11px;line-height:1.7;display:none;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
   #mg:focus{outline:none}
   #mg .mg-card,#mg .mg-look .txt{touch-action:pan-y}
-  #mg.on{display:block;animation:mg-crt-on .5s steps(12) both}
-  #mg.off{animation:mg-crt-off .28s steps(8) both}
-  @keyframes mg-crt-on{0%{clip-path:inset(49.6% 0 49.6% 0);filter:brightness(6)}45%{clip-path:inset(49.6% 0 49.6% 0);filter:brightness(6)}100%{clip-path:inset(0);filter:none}}
+  #mg.on{display:flex;animation:mg-crt-on .5s steps(12) both}
+  /* The shut-down collapses the whole overlay into a thin horizontal strip, CRT style. That only reads as a screen
+     switching off if the thing collapsing is dark — against the grey console shell it is a pale bar sweeping over
+     the site on the way out — so the shell goes black for the animation. */
+  #mg.off{animation:mg-crt-off .28s steps(8) both;background:#050505;background-image:none}
+  /* and the same on the way in: the band is dark until the screen opens out into the console */
+  @keyframes mg-crt-on{
+    0%{clip-path:inset(49.6% 0 49.6% 0);filter:brightness(6);background-color:#050505;background-image:none}
+    45%{clip-path:inset(49.6% 0 49.6% 0);filter:brightness(6);background-color:#050505;background-image:none}
+    100%{clip-path:inset(0);filter:none}
+  }
   @keyframes mg-crt-off{to{clip-path:inset(49.8% 0 49.8% 0);filter:brightness(5)}}
+  #mg .mg-stage{position:absolute;inset:0;overflow:hidden}
   #mg canvas.mg-view{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
   #mg .mg-scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.5) 100%)}
   #mg button{font:inherit;color:inherit;cursor:pointer}
@@ -99,16 +147,44 @@
   #mg .mg-time.show{display:block}
   #mg .mg-map{border:2px solid #f4f1e6;background:rgba(0,0,0,.6);image-rendering:pixelated;display:block}
   #mg .mg-keys{margin-top:6px;text-align:right;font-size:8px;opacity:.75;text-shadow:1px 1px 0 #000}
-  #mg .mg-cap{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);max-width:min(760px,calc(100% - 32px));background:rgba(8,8,8,.88);border:2px solid #f4f1e6;padding:11px 16px 9px;text-align:center;box-shadow:4px 4px 0 #2b7a34;display:none}
+  /* both text boxes live inside the screen, stacked at the bottom of it like a handheld's dialogue box */
+  #mg .mg-hud{position:absolute;left:0;right:0;bottom:22px;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 16px;pointer-events:none}
+  #mg .mg-cap{max-width:min(760px,100%);background:rgba(8,8,8,.88);border:2px solid #f4f1e6;padding:11px 16px 9px;text-align:center;box-shadow:4px 4px 0 #2b7a34;display:none}
   #mg .mg-cap.show{display:block}
   #mg .mg-cap b{display:block;font-weight:400;color:#fff}
-  #mg .mg-cap span{display:block;color:#8dff9a;font-size:9px;margin-top:3px;animation:mg-blink 1s steps(2,jump-none) infinite}
+  #mg .mg-say{max-width:min(640px,100%);
+    background:rgba(8,8,8,.9);border:2px solid #8dff9a;padding:11px 15px 10px;text-align:left;box-shadow:4px 4px 0 #000;display:none}
+  #mg .mg-say.show{display:block}
+  #mg .mg-say b{display:block;font-weight:400;color:#8dff9a;font-size:8px;letter-spacing:.12em;margin-bottom:6px}
+  #mg .mg-say span{display:block;font-size:10px;line-height:1.75;color:#f4f1e6}
+  /* the prompt text stays steady: nothing in the HUD blinks at you */
+  #mg .mg-cap span{display:block;color:#8dff9a;font-size:9px;margin-top:3px}
 
-  #mg .mg-card{position:absolute;inset:0;background:#050505;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;overflow:auto}
+  /* ---- the handheld ----
+     The whole thing is a console: a grey-green shell with the 3D view set into a bezel, the way out, room name,
+     clock and map along the top strip, and the screen taking everything that is left. Captions and what a guard
+     says sit on the screen itself, like a handheld's dialogue box. Touch adds a d-pad and a button underneath
+     (see the pointer:coarse block); on a desktop that space carries the name instead, since you play on keys.
+     This block sits after the plain HUD rules above on purpose — it overrides them, so it has to come later. */
+  /* Desktop: the console is only its frame. The screen fills the window inside the bezel and the HUD sits on the
+     screen, exactly as it did before — nothing is given up to shell bands. Touch gets the whole handheld instead:
+     shell, strip above, controls below (see the pointer:coarse block at the end). */
+  #mg{flex-direction:column;justify-content:flex-start;background:#c9ccbe;background-image:linear-gradient(#d3d6c8,#b9bdae)}
+  #mg .mg-stage{position:absolute;inset:46px;overflow:hidden;background:#000;
+    border:4px solid #15170f;border-radius:10px 10px 10px 42px;box-shadow:0 0 0 16px #5c6054, 0 0 0 20px #44483d}
+  #mg .mg-top{top:65px;left:65px;right:65px}
+  #mg .mg-time{display:none;margin-top:8px;padding:6px 9px 5px;border:2px solid #f4f1e6;background:rgba(10,10,10,.82);
+    color:#8dff9a;font-size:9px;line-height:1.3;text-align:left;box-shadow:2px 2px 0 #000}
+  #mg .mg-time.show{display:block}
+  #mg .mg-controls{display:none}
+  #mg .mg-go,#mg .mg-begin{display:none}
+  #mg .mg-brand{display:none}
+
+  #mg .mg-card{position:absolute;inset:0;background:#050505;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;overflow:auto;z-index:3}
   #mg .mg-card.hide{display:none}
   #mg .mg-card-in{max-width:680px;width:100%}
   #mg .mg-kick{color:#8dff9a;font-size:10px;letter-spacing:.1em}
-  #mg h2{font:400 clamp(20px,4.6vw,40px)/1.25 ${PIXEL};margin:14px 0 6px;color:#fff;text-shadow:4px 4px 0 #2b7a34}
+  #mg h2{font:400 clamp(20px,4.6vw,40px)/1.25 ${PIXEL};margin:14px 0 16px;color:#fff;text-shadow:4px 4px 0 #2b7a34}
   #mg .mg-sub{font-size:10px;opacity:.8;margin:0 0 26px}
   #mg .mg-how{display:grid;grid-template-columns:auto 1fr;gap:14px 20px;align-items:center;text-align:left;border:2px solid #f4f1e6;padding:20px 22px;margin:0 auto 24px;max-width:560px;background:#0c0c0c;box-shadow:6px 6px 0 #2b7a34}
   #mg .mg-how .k{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:210px}
@@ -119,10 +195,17 @@
   #mg .mg-load{height:14px;border:2px solid #f4f1e6;max-width:320px;margin:0 auto 10px;padding:2px}
   #mg .mg-load i{display:block;height:100%;width:0;background:#8dff9a;transition:width .2s steps(6)}
   #mg .mg-status{font-size:9px;opacity:.8;min-height:1.7em}
-  #mg .mg-start{margin-top:8px;background:#8dff9a;color:#0a0a0a;border:0;padding:15px 20px 12px;font-size:12px;box-shadow:4px 4px 0 #f4f1e6;display:none}
+  /* not a button — just the blinking prompt, like a title screen */
+  #mg .mg-start{margin-top:14px;background:none;color:#8dff9a;border:0;padding:0;font-size:12px;letter-spacing:.08em;display:none}
   #mg .mg-start.ready{display:inline-block;animation:mg-blink 1.1s steps(2,jump-none) infinite}
-  #mg .mg-start:hover{animation:none;background:#fff}
-  #mg .mg-touchnote{display:none;font-size:9px;opacity:.75;margin:-8px 0 20px}
+  /* touch controls legend: a little cross + a little button, each with one line of plain-case text */
+  #mg .mg-touchnote{display:none;grid-template-columns:auto 1fr;gap:10px 11px;align-items:center;text-align:left;
+    max-width:300px;margin:4px auto 20px;font-size:10px;line-height:1.45;color:#d8d5c8;text-transform:none;letter-spacing:0}
+  #mg .mg-touchnote b{color:#8dff9a;font-weight:400}
+  #mg .mg-touchnote .tn-i{width:17px;height:17px;flex:none;align-self:start;margin-top:1px}
+  #mg .mg-touchnote .tn-pad{background:#2f322a;
+    clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%)}
+  #mg .mg-touchnote .tn-act{background:#9c2b56;border-radius:50%;box-shadow:inset 0 -2px 0 rgba(0,0,0,.4)}
 
   #mg .mg-look{position:absolute;inset:0;background:rgba(4,4,4,.93);display:none;grid-template-columns:minmax(0,1.5fr) minmax(240px,1fr);gap:26px;align-items:center;padding:64px clamp(16px,4vw,56px) 28px}
   #mg .mg-look.show{display:grid}
@@ -139,15 +222,89 @@
 
   #mg .mg-pad{position:absolute;left:18px;bottom:22px;display:none;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,56px);gap:6px}
   #mg .mg-pad button,#mg .mg-act{background:rgba(10,10,10,.72);border:2px solid #f4f1e6;font-size:16px;line-height:1;touch-action:none}
-  #mg .mg-pad .u{grid-column:2;grid-row:1}#mg .mg-pad .l{grid-column:1;grid-row:2}#mg .mg-pad .dn{grid-column:2;grid-row:2}#mg .mg-pad .r{grid-column:3;grid-row:2}
+  /* a proper cross: up, then left and right either side of a centre hub, then down underneath */
+  #mg .mg-pad .u{grid-column:2;grid-row:1}#mg .mg-pad .l{grid-column:1;grid-row:2}
+  #mg .mg-pad .r{grid-column:3;grid-row:2}#mg .mg-pad .dn{grid-column:2;grid-row:3}
   #mg .mg-act{position:absolute;right:22px;bottom:34px;width:76px;height:76px;border-radius:50%;display:none;font-size:10px;color:#0a0a0a;background:#8dff9a;border-color:#0a0a0a}
+  /* ---- touch layout: a handheld, not an overlay ----
+     The 3D view becomes a 4:3 panel and everything else moves off it into bands above and below, so nothing a guard
+     says and no caption ever sits on top of the gallery. Top band: exit, room, clock, map. Bottom: what you are
+     looking at, then the d-pad and the action button. Spare height goes between the bands, not into the view. */
   @media (pointer:coarse){
-    #mg .mg-pad{display:grid}#mg .mg-act{display:block}#mg .mg-cap{bottom:158px}#mg .mg-keys{display:none}
-    #mg .mg-touchnote{display:block}#mg .mg-how{display:none}
+    /* touch: the full handheld. The strip and the controls come out of the screen and onto the shell. */
+    #mg .mg-top{position:relative;inset:auto;top:auto;left:auto;right:auto;order:1;padding:9px 12px 7px;gap:10px;align-items:flex-start}
+    #mg .mg-exit{background:#2a2d26;border-color:#2a2d26;color:#e7e9df;box-shadow:2px 2px 0 #8a8d80;padding:8px 10px 7px}
+    #mg .mg-room{color:#343730;text-shadow:none;margin-top:7px;font-size:9px}
+    #mg .mg-map{border-color:#2a2d26;background:#1b1d18;width:124px;height:auto}
+    #mg .mg-time{margin-top:7px;padding:7px 9px 6px;font-size:8px;border-color:#2a2d26;background:#2a2d26;box-shadow:2px 2px 0 #8a8d80}
+    #mg .mg-stage{position:relative;inset:auto;order:2;flex:1 1 auto;min-height:0;margin:12px 14px 0;
+      border-radius:7px 7px 7px 30px;box-shadow:0 0 0 7px #5c6054, 0 0 0 9px #44483d}
+    #mg .mg-hud{bottom:10px;gap:7px;padding:0 10px}
+    #mg .mg-cap{padding:8px 12px 7px;box-shadow:3px 3px 0 #000}
+    #mg .mg-say{padding:9px 12px 8px}
+    #mg .mg-say span{font-size:9px;line-height:1.7}
+    #mg .mg-controls{display:flex;order:3;align-items:center;justify-content:space-between;gap:12px;padding:16px 26px 8px;margin-top:auto}
+    #mg .mg-brand{display:block;order:4;text-align:center;letter-spacing:.22em;color:#5e6257;padding:0 0 10px;font-size:8px}
+    #mg .mg-pad{position:relative;left:auto;bottom:auto;display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:0}
+    /* No inset shading on the arms: the up arm's bottom edge meets the hub, so its shadow drew a line straight
+       across the middle of the cross. The cross is one flat moulded piece now. */
+    #mg .mg-pad button{background:#2f322a;border:0;box-shadow:none;
+      display:flex;align-items:center;justify-content:center;font-size:0;line-height:1;padding:0}
+    /* The arrow glyphs fall back to the system font — Press Start 2P has no triangles — so they came out smooth
+       next to the pixel lettering on the button. These are drawn instead as stair-stepped shapes: every edge is
+       horizontal or vertical, so there is nothing for the renderer to soften. */
+    #mg .mg-pad button::before{content:"";width:26px;height:26px;background:#d8dbce;
+      clip-path:polygon(40% 0,60% 0,60% 20%,70% 20%,70% 40%,80% 40%,80% 60%,90% 60%,90% 80%,100% 80%,100% 100%,
+        0 100%,0 80%,10% 80%,10% 60%,20% 60%,20% 40%,30% 40%,30% 20%,40% 20%)}
+    #mg .mg-pad .dn::before{transform:rotate(180deg)}
+    #mg .mg-pad .l::before{transform:rotate(-90deg)}
+    #mg .mg-pad .r::before{transform:rotate(90deg)}
+    /* the hub fills the middle so the four arms read as one cross rather than four separate keys */
+    #mg .mg-pad::after{content:"";grid-column:2;grid-row:2;background:#2f322a;
+      background-image:radial-gradient(circle at 50% 50%, #272a22 0 30%, transparent 31%)}
+    #mg .mg-pad .u{border-radius:8px 8px 0 0}#mg .mg-pad .l{border-radius:8px 0 0 8px}
+    #mg .mg-pad .dn{border-radius:0 0 8px 8px}#mg .mg-pad .r{border-radius:0 8px 8px 0}
+    #mg .mg-pad button:active{background:#24271f}
+    #mg .mg-act{position:relative;right:auto;bottom:auto;display:block;width:76px;height:76px;
+      background:#9c2b56;border:0;color:#ffe6ef;font-size:10px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
+    #mg .mg-act:active{box-shadow:inset 0 -1px 0 rgba(0,0,0,.4);transform:translateY(2px)}
+    /* Viewing a piece: the console face stays above the overlay so both buttons are still under your thumbs.
+       The d-pad has nothing to steer, so its side becomes the way through to the site and the other side goes
+       back. The label stays "OPEN" whatever the piece is — the overlay already says where it leads, and a button
+       whose text changes length every time makes the face jump about. */
+    #mg .mg-look{z-index:4;padding-bottom:126px}
+    #mg .mg-controls{position:relative;z-index:6;min-height:138px}
+    #mg.viewing .mg-pad{display:none}
+    #mg.viewing .mg-go{display:flex;align-items:center;justify-content:center}
+    #mg .mg-go{width:138px;height:76px;border:0;border-radius:40px;background:#3f7d4a;color:#eafbe8;
+      font-size:11px;letter-spacing:.08em;box-shadow:inset 0 -4px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
+    #mg .mg-go:active{box-shadow:inset 0 -1px 0 rgba(0,0,0,.4);transform:translateY(2px)}
+    /* before the game starts there is nothing to steer or look at, so the face carries one START button */
+    #mg:not(.playing) .mg-pad,#mg:not(.playing) .mg-act{display:none}
+    #mg:not(.playing) .mg-controls{justify-content:center}
+    #mg:not(.playing) .mg-begin{display:flex;align-items:center;justify-content:center}
+    #mg .mg-begin{width:168px;height:76px;border:0;border-radius:40px;background:#9c2b56;color:#ffe6ef;
+      font-size:12px;letter-spacing:.14em;box-shadow:inset 0 -4px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
+    #mg .mg-begin:active{box-shadow:inset 0 -1px 0 rgba(0,0,0,.4);transform:translateY(2px)}
+    #mg .mg-keys{display:none}
+    #mg .mg-touchnote{display:grid}#mg .mg-how{display:none}
   }
   @media (max-width:760px){
     #mg .mg-look{grid-template-columns:1fr;grid-template-rows:minmax(0,1.2fr) minmax(0,1fr);gap:16px;padding:60px 16px 16px}
     #mg .mg-map{width:104px;height:auto}
+  }
+  /* Last word on the artwork view for touch. These come after everything else on purpose: the blocks above set
+     the overlay's padding and grid, and this has to win.
+       - its own BACK / OPEN buttons go: the console face below carries both, which is where your thumbs are
+       - nothing scrolls. A phone screen is small enough that a scrollbox inside an overlay is miserable, so the
+         description is trimmed to what fits and the rest is a tap away on the site. */
+  @media (pointer:coarse){
+    #mg .mg-look{padding-bottom:126px}
+    #mg .mg-look .acts{display:none}
+    #mg .mg-look .txt{overflow:hidden}
+    #mg .mg-look .note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    #mg .mg-look .body{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+    #mg .mg-look h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   }`;
   document.head.appendChild(Object.assign(document.createElement("style"), { textContent: css }));
   document.head.appendChild(Object.assign(document.createElement("link"), { rel: "stylesheet", href: FONT_URL }));
@@ -163,6 +320,10 @@
   nav.appendChild(toggle);                      // after the Contact button
   nav.classList.add("has-game");
   toggle.addEventListener("click", open);
+  // iOS is unreliable about :active on a button, so the "switch thrown" look is set from the touch directly
+  toggle.addEventListener("touchstart", () => toggle.classList.add("pressed"), { passive: true });
+  ["touchend", "touchcancel"].forEach(ev =>
+    toggle.addEventListener(ev, () => setTimeout(() => toggle.classList.remove("pressed"), 220), { passive: true }));
 
   /* ---------------- overlay DOM ---------------- */
   let root, ui = {};
@@ -171,8 +332,34 @@
     root.id = "mg"; root.tabIndex = -1;
     root.setAttribute("role", "application"); root.setAttribute("aria-label", "Museum mode");
     root.innerHTML = `
-      <canvas class="mg-view"></canvas>
-      <div class="mg-scan"></div>
+      <div class="mg-stage"><canvas class="mg-view"></canvas><div class="mg-scan"></div>
+        <div class="mg-hud">
+          <div class="mg-say" aria-live="polite"><b>SECURITY</b><span></span></div>
+          <div class="mg-cap" aria-live="polite"><b></b><span></span></div>
+        </div>
+        <div class="mg-card">
+          <div class="mg-card-in">
+            <div class="mg-kick">★ ALEX KOCEYAN PRESENTS ★</div>
+            <h2>MUSEUM MODE</h2>
+            <p class="mg-sub">WALK THE GALLERIES. EVERY PIECE IS ON THE WALLS.</p>
+            <div class="mg-how">
+              <div class="k"><kbd>W</kbd><kbd>S</kbd><span class="or">OR</span><kbd class="ar">↑</kbd><kbd class="ar">↓</kbd></div><div class="d">WALK FORWARD / BACK</div>
+              <div class="k"><kbd>A</kbd><kbd>D</kbd><span class="or">OR</span><kbd class="ar">←</kbd><kbd class="ar">→</kbd></div><div class="d">TURN LEFT / RIGHT</div>
+              <div class="k"><kbd>SHIFT</kbd></div><div class="d">HOLD TO RUN</div>
+              <div class="k"><kbd>T</kbd></div><div class="d">MURAL YARD: SWITCH DAY / SUNSET / NIGHT</div>
+              <div class="k"><kbd>E</kbd><span class="or">OR</span><kbd>SPACE</kbd></div><div class="d">LOOK AT THE ART IN FRONT OF YOU<br>OR SIT DOWN WHEN YOU ARE BY A BENCH</div>
+              <div class="k"><kbd>ESC</kbd></div><div class="d">BACK TO THE WEBSITE</div>
+            </div>
+            <div class="mg-touchnote">
+              <span class="tn-i tn-pad" aria-hidden="true"></span><span><b>MOVE</b> — up/down walks, left/right turns</span>
+              <span class="tn-i tn-act" aria-hidden="true"></span><span><b>ACT</b> — look, sit, talk; the button fits whatever is in front of you</span>
+            </div>
+            <div class="mg-load"><i></i></div>
+            <div class="mg-status">LOADING…</div>
+            <button class="mg-start" type="button">PRESS ENTER OR SPACE</button>
+          </div>
+        </div>
+      </div>
       <div class="mg-top">
         <div>
           <button class="mg-exit" type="button" aria-label="Exit museum mode"><span class="gt-sw" aria-hidden="true"><i></i></span><span>Exit [Esc]</span></button>
@@ -184,47 +371,41 @@
           <div class="mg-keys">[H] HELP</div>
         </div>
       </div>
+      <div class="mg-say" aria-live="polite"><b>SECURITY</b><span></span></div>
       <div class="mg-cap" aria-live="polite"><b></b><span></span></div>
-      <div class="mg-pad" aria-hidden="true">
-        <button class="u" data-k="up">▲</button><button class="l" data-k="left">◀</button><button class="dn" data-k="down">▼</button><button class="r" data-k="right">▶</button>
+      <div class="mg-controls">
+        <div class="mg-pad" aria-hidden="true">
+          <button class="u" data-k="up">▲</button><button class="l" data-k="left">◀</button><button class="dn" data-k="down">▼</button><button class="r" data-k="right">▶</button>
+        </div>
+        <button class="mg-go" type="button">OPEN</button>
+        <button class="mg-begin" type="button">START</button>
+        <button class="mg-act" type="button">LOOK</button>
       </div>
-      <button class="mg-act" type="button">LOOK</button>
+      <div class="mg-brand">ALEX KOCEYAN</div>
       <div class="mg-look" role="dialog" aria-label="Artwork">
         <div class="pic"><img alt=""></div>
         <div class="txt"><div class="tag"></div><h3></h3><p class="note"></p><p class="body"></p><div class="acts"></div></div>
       </div>
-      <div class="mg-card">
-        <div class="mg-card-in">
-          <div class="mg-kick">★ ALEX KOCEYAN PRESENTS ★</div>
-          <h2>MUSEUM MODE</h2>
-          <p class="mg-sub">WALK THE GALLERIES. EVERY PIECE IS ON THE WALLS.</p>
-          <div class="mg-how">
-            <div class="k"><kbd>W</kbd><kbd>S</kbd><span class="or">OR</span><kbd class="ar">↑</kbd><kbd class="ar">↓</kbd></div><div class="d">WALK FORWARD / BACK</div>
-            <div class="k"><kbd>A</kbd><kbd>D</kbd><span class="or">OR</span><kbd class="ar">←</kbd><kbd class="ar">→</kbd></div><div class="d">TURN LEFT / RIGHT</div>
-            <div class="k"><kbd>SHIFT</kbd></div><div class="d">HOLD TO RUN</div>
-            <div class="k"><kbd>T</kbd></div><div class="d">MURAL YARD: SWITCH DAY / SUNSET / NIGHT</div>
-            <div class="k"><kbd>E</kbd><span class="or">OR</span><kbd>SPACE</kbd></div><div class="d">LOOK AT THE ART IN FRONT OF YOU</div>
-            <div class="k"><kbd>ESC</kbd></div><div class="d">BACK TO THE WEBSITE</div>
-          </div>
-          <p class="mg-touchnote">USE THE ARROW PAD TO WALK AND TURN.<br>TAP “LOOK” WHEN YOU ARE IN FRONT OF A PIECE.</p>
-          <div class="mg-load"><i></i></div>
-          <div class="mg-status">LOADING…</div>
-          <button class="mg-start" type="button">▶ PRESS ENTER TO START</button>
-        </div>
-      </div>`;
+`;
     document.body.appendChild(root);
     ui = {
       view: root.querySelector(".mg-view"), room: root.querySelector(".mg-room"), time: root.querySelector(".mg-time"), map: root.querySelector(".mg-map"),
       cap: root.querySelector(".mg-cap"), capT: root.querySelector(".mg-cap b"), capK: root.querySelector(".mg-cap span"),
+      say: root.querySelector(".mg-say"), sayB: root.querySelector(".mg-say b"), sayT: root.querySelector(".mg-say span"),
+      act: root.querySelector(".mg-act"), go: root.querySelector(".mg-go"),
       card: root.querySelector(".mg-card"), bar: root.querySelector(".mg-load i"), status: root.querySelector(".mg-status"),
       start: root.querySelector(".mg-start"), look: root.querySelector(".mg-look"), lookImg: root.querySelector(".mg-look img"),
       lookTag: root.querySelector(".mg-look .tag"), lookH: root.querySelector(".mg-look h3"), lookNote: root.querySelector(".mg-look .note"),
       lookBody: root.querySelector(".mg-look .body"), lookActs: root.querySelector(".mg-look .acts"),
     };
     root.querySelector(".mg-exit").addEventListener("click", close);
+    // there is no Esc key on a phone, so do not advertise one
+    if (matchMedia("(pointer:coarse)").matches) root.querySelector(".mg-exit span:last-child").textContent = "Exit";
     ui.start.addEventListener("click", begin);
     ui.time.addEventListener("click", cycleTime);
-    root.querySelector(".mg-act").addEventListener("click", () => (state.looking ? closeLook() : tryLook()));
+    root.querySelector(".mg-act").addEventListener("click", act);
+    root.querySelector(".mg-go").addEventListener("click", () => { if (state.view && state.view.go) state.view.go(); });
+    root.querySelector(".mg-begin").addEventListener("click", begin);
     root.querySelectorAll(".mg-pad button").forEach((b) => {
       const k = b.dataset.k;
       const set = (v) => (e) => { e.preventDefault(); keys[k] = v; };
@@ -235,7 +416,7 @@
 
   /* ---------------- state ---------------- */
   const keys = { up: false, down: false, left: false, right: false, run: false };
-  const state = { open: false, playing: false, looking: false, ready: false, failed: false, raf: 0, near: null, room: "" };
+  const state = { open: false, playing: false, looking: false, ready: false, failed: false, raf: 0, near: null, room: "", bench: null, sitting: null, guard: null, talking: null, view: null };
   const player = { x: START.x, z: START.z, yaw: START.yaw, walk: 0, moving: 0 };
   let T = null, renderer, scene, camera, avatar, camYaw = START.yaw, lastT = 0;
   const ARTS = [];
@@ -248,18 +429,36 @@
     const typing = e.target instanceof HTMLElement && e.target.matches("input,textarea");
     if (typing) return;
     const k = KEYMAP[e.code];
-    if (k) { keys[k] = down; e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (k) {
+      // seated: left / right still turn you on the spot, but trying to walk gets you up
+      if (down && state.sitting && (k === "up" || k === "down")) { stand(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+      keys[k] = down; e.preventDefault(); e.stopImmediatePropagation(); return;
+    }
     if (!down) return;
     let used = true;
     if (e.code === "Escape") { if (state.looking) closeLook(); else close(); }
-    else if (e.code === "Enter") { if (!state.playing) begin(); else if (state.looking && state.near && state.near.data.go) state.near.data.go(); else tryLook(); }
-    else if (e.code === "KeyE" || e.code === "Space") { if (!state.playing) begin(); else if (state.looking) closeLook(); else tryLook(); }
+    // state.view is the piece you are looking at. (state.near is cleared while the overlay is open — it tracks what
+    // is in front of you in the room, which is nothing while you are reading about something.)
+    else if (e.code === "Enter") { if (state.looking && state.view && state.view.go) state.view.go(); else act(); }
+    else if (e.code === "KeyE" || e.code === "Space") { act(); }
     else if (e.code === "KeyH") { if (state.playing && !state.looking) showCard(); }
     else if (e.code === "KeyT") { if (state.playing && !state.looking) cycleTime(); }
     else used = false;
     if (used) { e.preventDefault(); e.stopImmediatePropagation(); }
   }
   const clearKeys = () => { for (const k in keys) keys[k] = false; };
+  // E / SPACE / the on-screen button all come here: whatever is in front of you is what it does
+  function act() {
+    if (!state.playing) return begin();
+    if (state.looking) return closeLook();
+    if (state.talking) return hush();
+    if (state.sitting) return stand();
+    if (state.near) return tryLook();
+    if (state.guard) return speak(state.guard);
+    if (state.bench) return sit(state.bench);
+  }
+  function speak(q) { state.talking = q; ui.sayB.textContent = q.kind === "visitor" ? "GALLERY VISITOR" : "SECURITY"; ui.sayT.textContent = "“" + q.line + "”"; ui.say.classList.add("show"); }
+  function hush() { state.talking = null; ui.say.classList.remove("show"); }
 
   /* ---------------- open / close ---------------- */
   let prevFocus = null, prevOverflow = "";
@@ -287,11 +486,18 @@
     }
     if (state.failed) { state.failed = false; try { await boot(); } catch { state.failed = true; return; } }
     resize();
+    // the stage is sized by css now, so watch the element itself as well as the window (the phone layout changes
+    // height when the address bar slides away, which does not always arrive as a window resize)
+    if (!state.ro && window.ResizeObserver) { state.ro = new ResizeObserver(resize); state.ro.observe(ui.view.parentElement); }
     lastT = performance.now();
     cancelAnimationFrame(state.raf);
     state.raf = requestAnimationFrame(frame);
   }
-  function close() {
+  // refocus: put the keyboard back on the Museum Mode button. Right when you have just stepped out of the game and
+  // are still on the same page; wrong when you followed a piece through to somewhere else, where it leaves the
+  // button sitting there focus-ringed on a page it has nothing to do with. Called straight from a click handler
+  // the argument is the event, which is truthy, so that path keeps the old behaviour.
+  function close(refocus = true) {
     if (!state.open) return;
     state.open = false; state.playing = false;
     closeLook(); clearKeys();
@@ -302,21 +508,23 @@
     root.classList.add("off");
     setTimeout(() => { if (!state.open) root.classList.remove("on", "off"); }, 280);
     document.documentElement.style.overflow = prevOverflow;
-    if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+    if (refocus && prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
   }
   function showCard() {
     state.playing = false; clearKeys();
     ui.card.classList.remove("hide");
+    root.classList.remove("playing");   // until you are in, the console face carries one START button
     if (state.ready) markReady();
   }
   function markReady() {
     ui.start.classList.add("ready");
-    ui.start.textContent = matchMedia("(pointer:coarse)").matches ? "▶ TAP TO START" : "▶ PRESS ENTER TO START";
+    ui.start.textContent = matchMedia("(pointer:coarse)").matches ? "PRESS START" : "PRESS ENTER OR SPACE";
   }
   function begin() {
     if (!state.ready) return;
     ui.card.classList.add("hide");
     state.playing = true;
+    root.classList.add("playing");
     root.focus({ preventScroll: true });
   }
   function setProgress() {
@@ -333,12 +541,17 @@
       document.fonts && document.fonts.load ? Promise.race([document.fonts.load('16px "Press Start 2P"'), new Promise((r) => setTimeout(r, 2500))]).catch(() => {}) : null,
     ]);
     T = mod; tmpColor = new T.Color();
-    renderer = new T.WebGLRenderer({ canvas: ui.view, antialias: false, powerPreference: "low-power" });
+    // "highp" and no alpha: a phone will otherwise happily hand back a low-precision buffer, and the lamp light
+    // pooled on the grass is exactly the kind of wide, soft gradient that falls apart in one.
+    renderer = new T.WebGLRenderer({ canvas: ui.view, antialias: false, powerPreference: "low-power", precision: "highp", alpha: false });
     renderer.setPixelRatio(1);
     scene = new T.Scene();
     scene.background = new T.Color(0x070707);
     scene.fog = new T.Fog(0x070707, 30, 110);
-    camera = new T.PerspectiveCamera(62, 16 / 9, 0.1, 1200);
+    // The near plane drives how much depth precision there is to go round, and on a phone there may only be 16 bits
+    // of it. 0.1 spent most of that range on the first few centimetres; 0.25 is still closer than the camera ever
+    // gets to anything (it hides the character before it is squeezed in that far) and roughly doubles the rest.
+    camera = new T.PerspectiveCamera(62, 16 / 9, 0.25, 1200);
     scene.add(new T.AmbientLight(0xffffff, 2.3));
     const sun = new T.DirectionalLight(0xfff2d8, 1.4); sun.position.set(6, 12, 8); scene.add(sun);
 
@@ -346,6 +559,7 @@
     buildYard();
     hangEverything();
     avatar = buildAvatar(); scene.add(avatar);
+    for (const q of NPCS) { q.mesh = buildGuard(q.out, q.look); q.mesh.position.set(q.x, 0, q.z); q.mesh.rotation.y = q.yaw; scene.add(q.mesh); }
     applyTime(hourNow());
     state.ready = true;
     markReady(); setProgress();
@@ -465,9 +679,12 @@
     [24,   "#04061a", "#141b3d", "#59628f", 1],
   ];
   const TIME_MODES = [null, 12, 19, 23.5], TIME_NAMES = ["AUTO", "DAY", "SUNSET", "NIGHT"];   // null = the visitor's real local time
-  const yard = { mats: [], art: [], glows: [], bulbs: [], accents: [], hour: -99, mode: 0, o: -1, night: 0, tint: null, artTint: null, haze: null };
+  const yard = { mats: [], art: [], glows: [], bulbs: [], accents: [], lamp: [], hour: -99, mode: 0, o: -1, night: 0, tint: null, artTint: null, lampTint: null, haze: null };
   const avatarMats = [];
   function tinted(mat) { yard.mats.push({ mat, base: mat.color.clone() }); return mat; }
+  // for things standing in a lamp's pool of light: they follow the time of day, but the lamp keeps them readable
+  // after dark instead of letting them sink into the night like the rest of the yard
+  function lamplit(mat) { yard.lamp.push({ mat, base: mat.color.clone() }); return mat; }
   const hex = (c) => "#" + c.getHexString();
   function hourNow() {
     const forced = TIME_MODES[yard.mode];
@@ -534,15 +751,27 @@
     low(M.x0, M.x1 + 0.5, M.z0 - 0.5, M.z0); low(M.x1, M.x1 + 0.5, M.z0, M.z1); low(M.x0, M.x1 + 0.5, M.z1, M.z1 + 0.5);
 
     // soft pools of lamp light on the ground, only visible after dark
-    const glowTex = canvasTex(32, 32, (g) => {
-      const r = g.createRadialGradient(16, 16, 1, 16, 16, 16);
-      r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = r; g.fillRect(0, 0, 32, 32);
+    // Everything else in here is nearest-filtered on purpose — that is the look. A pool of light is the exception:
+    // at 32px blown up across nine metres each texel became a 28cm block, so the gradient came out as rings of
+    // flat colour fighting each other over the grass. Bigger texture, smoothly filtered.
+    const glowTex = canvasTex(128, 128, (g) => {
+      const r = g.createRadialGradient(64, 64, 2, 64, 64, 64);
+      r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.45, "rgba(255,255,255,.42)");
+      r.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = r; g.fillRect(0, 0, 128, 128);
     });
+    glowTex.magFilter = glowTex.minFilter = T.LinearFilter;
     const pool = (x, z, sx, sz, max) => {
-      const mat = new T.MeshBasicMaterial({ map: glowTex, color: 0xffd58a, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false });
+      // polygonOffset nudges these in the depth buffer rather than in space. Phones often run a 16-bit depth buffer,
+      // and with the far plane this far out a few centimetres of clearance is below what it can resolve — so the
+      // pool and the grass kept swapping places per pixel, which is what the speckled colour was.
+      // dithering matters here: phones often run a 16-bit colour buffer, and a wide additive gradient across it
+      // posterises into hard rings of colour. Dithering trades that for noise you cannot see at this scale.
+      const mat = new T.MeshBasicMaterial({ map: glowTex, color: 0xffd58a, transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false, dithering: true,
+        polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
       const m = new T.Mesh(new T.PlaneGeometry(1, 1), mat);
-      m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); m.scale.set(sx, sz, 1); scene.add(m);
+      m.rotation.x = -Math.PI / 2; m.position.set(x, 0.06, z); m.scale.set(sx, sz, 1); scene.add(m);   // clear of the grass: the depth buffer is coarse this far out
       yard.glows.push({ mat, max });
     };
     const bulb = (w, hh, d, x, y, z) => {
@@ -576,7 +805,7 @@
     // plain-coloured parts (roofs, spires, the bridge). "glow" = the colour it lights up to at night
     const accent = (color, glow) => { const mat = new T.MeshBasicMaterial({ color }); yard.accents.push({ mat, base: mat.color.clone(), glow: glow != null ? new T.Color(glow) : null }); return mat; };
     // everything below is laid out as if the city started ~100 m away, then the whole group is pushed back to the horizon
-    const CITY_DX = 140, city = new T.Group(); city.position.x = CITY_DX; scene.add(city);
+    const CITY_DX = 140, city = new T.Group(); city.position.x = CITY_DX; scene.add(city); yard.city = city;
     const add = (geo, mat, x, y, z) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); city.add(m); return m; };
     const uvBox = (w, hh, d) => scaleUV(new T.BoxGeometry(w, hh, d), Math.max(1, Math.round(Math.max(w, d) / 8)), Math.max(1, Math.round(hh / 8)));
     // a tower made of stacked tiers: [[width, depth, topHeight], ...]; returns the height of the top
@@ -681,7 +910,9 @@
     yard.hour = h; yard.night = P.night; yard.tint = P.tint;
     yard.haze = P.hor.clone().lerp(P.top, 0.25);
     yard.artTint = P.tint.clone().lerp(new T.Color(0xffffff), 0.6);       // murals stay readable at night (floodlights)
+    yard.lampTint = P.tint.clone().lerp(new T.Color(0xfff0cf), 0.72);     // and so does anyone stood under a lamp
     for (const o of yard.mats) o.mat.color.copy(o.base).multiply(P.tint);
+    for (const o of yard.lamp) o.mat.color.copy(o.base).multiply(yard.lampTint);
     for (const m of yard.art) if (m.map) m.color.copy(yard.artTint);
     for (const gl of yard.glows) gl.mat.opacity = gl.max * P.night;
     for (const b of yard.bulbs) b.color.set(0x4c4a45).lerp(new T.Color(0xfff0b8), Math.min(1, P.night * 1.4));
@@ -756,20 +987,30 @@
   }
 
   let loader;
-  function hang({ url, ar = 1, maxW, maxH, x, z, nx, nz, data, frame = 0x14110f, outdoor = false, bottom = null }) {
+  // crop: [x, y, w, h] as fractions, to show only part of a picture so its subject fills the frame.
+  // alpha: a second image whose shape the first one shows through — used to hang a logo with artwork inside it.
+  // bg: a solid card behind the picture. A logo on a transparent background needs one — without it the see-through
+  // parts come out black (nothing is compositing them), which for a black logo means a black rectangle.
+  function hang({ url, ar = 1, maxW, maxH, x, z, nx, nz, data, frame = 0x14110f, outdoor = false, bottom = null, crop = null, alpha = null, bg = null }) {
     const grp = new T.Group();
     grp.position.set(x + nx * 0.09, 2.3, z + nz * 0.09);
     grp.rotation.y = Math.atan2(nx, nz);
     const mat = new T.MeshBasicMaterial({ color: 0x3a3632 });
-    const art = new T.Mesh(new T.PlaneGeometry(1, 1), mat); art.position.z = 0.03;
+    // With a backing card the picture has to stand further off the wall: the frame is a box whose front face is at
+    // z 0.02, so a card sitting on 0.02 fights it for every pixel, and a picture 0.01 in front of the card fights
+    // that. Spaced 3cm apart there is nothing to argue about.
+    const art = new T.Mesh(new T.PlaneGeometry(1, 1), mat); art.position.z = bg == null ? 0.03 : 0.08;
     const fr = new T.Mesh(new T.BoxGeometry(1, 1, 0.1), new T.MeshLambertMaterial({ color: frame == null ? 0x000000 : frame })); fr.position.z = -0.03;
     const tagM = new T.Mesh(new T.PlaneGeometry(0.36, 0.22), new T.MeshBasicMaterial({ color: 0xf1ecdc }));   // the little wall label
+    const card = bg == null ? null : new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ color: bg }));
+    if (card) { card.position.z = 0.05; grp.add(card); mat.transparent = true; }   // the picture composites onto it
     grp.add(fr, art, tagM); scene.add(grp);
     if (outdoor) { yard.art.push(mat); tagM.visible = false; if (frame == null) fr.visible = false; else tinted(fr.material); }
     const rec = { x, z, nx, nz, w: 1, data, grp };
     const fit = (a) => {
       const w = Math.min(maxW, maxH * a), hh = w / a;
       art.scale.set(w, hh, 1); fr.scale.set(w + 0.26, hh + 0.26, 1);
+      if (card) card.scale.set(w, hh, 1);
       grp.position.y = bottom != null ? bottom + hh / 2 : Math.max(2.3, 0.95 + hh / 2);
       tagM.position.set(w / 2 + 0.42, -hh / 2 + 0.16, 0);
       rec.w = w;
@@ -779,13 +1020,65 @@
     loader.load(url, (tex) => {
       tex.colorSpace = T.SRGBColorSpace;
       tex.magFilter = T.NearestFilter; tex.minFilter = T.LinearMipmapLinearFilter;
+      if (crop) { tex.repeat.set(crop[2], crop[3]); tex.offset.set(crop[0], 1 - crop[1] - crop[3]); }   // three counts up from the bottom
       mat.map = tex; mat.color.set(0xffffff); mat.needsUpdate = true;
       if (outdoor && yard.artTint) mat.color.copy(yard.artTint);
-      if (tex.image && tex.image.width) fit(tex.image.width / tex.image.height);
+      // with an alpha image the shape of that decides the frame, so leave the fitting to it
+      if (!alpha && tex.image && tex.image.width)
+        fit((tex.image.width * (crop ? crop[2] : 1)) / (tex.image.height * (crop ? crop[3] : 1)));
       loaded++; setProgress();
     }, undefined, () => { loaded++; setProgress(); });
+    if (alpha) {
+      total++;
+      loader.load(alpha, (t2) => {
+        t2.magFilter = T.LinearFilter; t2.minFilter = T.LinearMipmapLinearFilter;
+        mat.alphaMap = t2; mat.transparent = true; mat.needsUpdate = true;
+        if (t2.image && t2.image.width) fit(t2.image.width / t2.image.height);
+        loaded++; setProgress();
+      }, undefined, () => { loaded++; setProgress(); });
+    }
     ARTS.push(rec);
     return rec;
+  }
+  // Composite a logo shape filled with a gradient, on white, into one image for the view overlay. The logo image
+  // is the mask; the gradient (optionally a crop band of it) is cover-fit inside it. Both images are served with
+  // CORS headers, so the canvas stays clean and toDataURL works.
+  function bakeMasked(gradUrl, logoUrl, crop, cb) {
+    const lg = new Image(), gd = new Image(); lg.crossOrigin = gd.crossOrigin = "anonymous";
+    let n = 0;
+    const go = () => { if (++n < 2) return;
+      try {
+        const w = lg.naturalWidth, h = lg.naturalHeight;
+        const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d");
+        x.drawImage(lg, 0, 0, w, h);                                   // the logo is the shape to keep
+        x.globalCompositeOperation = "source-in";                     // paint the gradient only inside it
+        const gw = gd.naturalWidth, gh = gd.naturalHeight;
+        const cx = crop ? crop[0] * gw : 0, cy = crop ? crop[1] * gh : 0;
+        const cw = crop ? crop[2] * gw : gw, ch = crop ? crop[3] * gh : gh;
+        const s = Math.max(w / cw, h / ch), dw = cw * s, dh = ch * s;
+        x.drawImage(gd, cx, cy, cw, ch, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        x.globalCompositeOperation = "destination-over";              // then white behind the logo
+        x.fillStyle = "#fff"; x.fillRect(0, 0, w, h);
+        cb(c.toDataURL("image/png"));
+      } catch (e) {}
+    };
+    lg.onload = gd.onload = go;
+    lg.src = logoUrl; gd.src = gradUrl;
+  }
+  // crop an image to [x, y, w, h] (fractions) and hand back a data URL, so the look-view shows the same framing
+  // the wall does. The canvas stays clean (CORS), so toDataURL works.
+  function bakeCrop(url, crop, cb) {
+    const im = new Image(); im.crossOrigin = "anonymous";
+    im.onload = () => {
+      try {
+        const iw = im.naturalWidth, ih = im.naturalHeight;
+        const sx = crop[0] * iw, sy = crop[1] * ih, sw = crop[2] * iw, sh = crop[3] * ih;
+        const c = document.createElement("canvas"); c.width = Math.round(sw); c.height = Math.round(sh);
+        c.getContext("2d").drawImage(im, sx, sy, sw, sh, 0, 0, c.width, c.height);
+        cb(c.toDataURL("image/jpeg", 0.9));
+      } catch (e) {}
+    };
+    im.src = url;
   }
   // spread n pieces evenly along a wall
   function along(side, room, from, to, items, opt) {
@@ -804,7 +1097,7 @@
 
     /* lobby: signs over each door + the artist wall */
     const lint = (DOOR_H + H) / 2;
-    sign([["ILLUSTRATION", 24]], 0, L.z0, 0, 1, lint, 6.4, 1.3);
+    sign([["ILLUSTRATION SALON", 24]], 0, L.z0, 0, 1, lint, 6.4, 1.3);
     sign([["GRAPHIC DESIGN", 24]], L.x0, 0, 1, 0, lint, 6.4, 1.3);
     sign([["MURAL YARD", 24]], L.x1, 0, -1, 0, lint, 6.4, 1.3);
     sign([["", 6], ["ALEX KOCEYAN", 26], ["ILLUSTRATOR", 15, "#8dff9a"], ["DESIGNER + MURALIST", 15, "#8dff9a"], ["METRO DETROIT", 13], ["", 6]], 2.6, L.z1, 0, -1, 3, 8, 3.6);
@@ -823,7 +1116,7 @@
       return {
         url: src(it.f, 720), ar: it.w / it.h,
         data: { tag: ["ILLUSTRATION"].concat(it.cats || []).join(" · ").toUpperCase(), title: info[0] || "Illustration", note: info[1] || "", img: src(it.f, 1600),
-          goLabel: it.cls === "book" ? "READ THE COMIC ON THE SITE" : "SEE IT ON THE ILLUSTRATION PAGE", go: () => leaveTo("#illustration") },
+          goLabel: it.cls === "book" ? "READ THE COMIC ON THE SITE" : "SEE IT ON THE ILLUSTRATION PAGE", go: () => leaveTo("#illustration", it.f) },
       };
     });
     const iOpt = { maxW: 2.6, maxH: 3.1, frame: 0x8a6a26 };
@@ -839,10 +1132,28 @@
     sign([["LOBBY", 16]], 0, I.z1, 0, -1, lint, 4, 1, { bg: "#f1ecdc", fg: "#111" });
 
     /* graphic design wing: one bay per project */
-    const projs = PROJECTS.map((p) => ({
-      url: src(p.cover, 900), ar: 1.4,
-      data: { tag: "GRAPHIC DESIGN · " + p.type.toUpperCase(), title: p.name, body: p.text, img: src(p.cover, 1600), goLabel: "OPEN THE FULL PROJECT", go: () => leaveTo("#" + p.slug) },
-    }));
+    // most projects hang their cover photo; these four read better as something else on a wall
+    const GD_PIC = {
+      luxor:      { crop: [0.12, 0.26, 0.76, 0.56] },                                     // tighter, so the sign carries across the room
+      // the full logo with "Simply. Bumpin'" tagline — a local image (the site's cutout mask doesn't include the tagline)
+      "dj-hayko": { raw: "game/hayko-logo.webp", bg: 0xffffff, viewBg: "#fff" },
+      arakyal:    { url: "5500a9ae2a854a10bef8faad35266281.png", bg: 0xffffff, viewBg: "#fff" },   // the plain logo, on white
+      marlenka:   { url: "76efed98c5ff4fecb9ea59b6b327f049.jpg" },                        // the postcard, held
+    };
+    const projs = PROJECTS.map((p) => {
+      const o = GD_PIC[p.slug] || {}, pic = o.url || p.cover;
+      // "raw" = a local image path used as-is (not a Cargo hash)
+      const wallUrl = o.raw || src(pic, 900), viewUrl = o.raw || src(pic, 1600);
+      const data = { tag: "GRAPHIC DESIGN · " + p.type.toUpperCase(), title: p.name, body: p.text,
+        img: viewUrl, viewBg: o.viewBg || null, goLabel: "OPEN THE FULL PROJECT", go: () => leaveTo("#" + p.slug) };
+      // the view shows one flat image. For the gradient-through-logo piece that has to be baked (a raw gradient is
+      // just a gradient), so composite the logo shape filled with the gradient on white and use that.
+      if (o.viewMask) bakeMasked(src(pic, 1200), src(o.viewMask, 900), o.crop, (u) => { data.img = u; });
+      return {
+        url: wallUrl, ar: 1.4, crop: o.crop || null, alpha: o.alpha ? src(o.alpha, 900) : null, bg: o.bg != null ? o.bg : null,
+        data,
+      };
+    });
     const gOpt = { maxW: 4.6, maxH: 3.3, frame: 0x111111 };
     const gN = Math.ceil((projs.length - 1) / 2);
     along("N", "gd", G.x1 - 0.5, G.x0 + 0.5, projs.slice(0, gN), gOpt);
@@ -854,10 +1165,12 @@
     const first = (m) => m.rows[0][0];
     const face = (sl, t = 0) => ({ x: sl.cx + sl.nx * 0.3 + (sl.along === "x" ? t : 0), z: sl.cz + sl.nz * 0.3 + (sl.along === "z" ? t : 0), nx: sl.nx, nz: sl.nz });
     MURALS.slice(0, SLABS.length - 1).forEach((m, i) => {
-      const sl = SLABS[i];
+      const sl = SLABS[i], fm = first(m);
+      const d = { tag: "MURAL · " + m.tag.toUpperCase(), title: m.name, body: m.text, img: src(fm.f, 1800), goLabel: "SEE IT ON THE MURALS PAGE", go: () => leaveTo("#murals") };
+      if (fm.crop) bakeCrop(src(fm.f, 1800), fm.crop, (u) => { d.img = u; });   // the view matches the cropped wall
       hang({
-        url: src(first(m).f, 1200), ar: 1.6, maxW: sl.w - 0.8, maxH: sl.h - 1.1, outdoor: true, frame: null, bottom: 0.55, ...face(sl),
-        data: { tag: "MURAL · " + m.tag.toUpperCase(), title: m.name, body: m.text, img: src(first(m).f, 1800), goLabel: "SEE IT ON THE MURALS PAGE", go: () => leaveTo("#murals") },
+        url: src(fm.f, 1200), ar: 1.6, crop: fm.crop || null, maxW: sl.w - 0.8, maxH: sl.h - 1.1, outdoor: true, frame: null, bottom: 0.55, ...face(sl),
+        data: d,
       });
     });
     const extras = [];
@@ -879,31 +1192,119 @@
       const m = new T.Mesh(new T.BoxGeometry(w, hh, d), mat);
       m.position.set(x, y, z); parent.add(m); return m;
     };
-    const limb = (x, y, w, hh, d, color, tipColor) => {
+    // same build as the guards: eight-sided prisms that taper, rather than stacked cubes
+    const tube = (rt, rb, hh, color, x, y, z, parent = g, seg = 8) => {
+      const mat = new T.MeshLambertMaterial({ color });
+      avatarMats.push({ mat, base: mat.color.clone() });
+      const m = new T.Mesh(new T.CylinderGeometry(rt, rb, hh, seg), mat);
+      m.position.set(x, y, z); parent.add(m); return m;
+    };
+    // the pivots stay where they were (hips at 0.82, shoulders at 1.44) so the walk cycle and the seated pose
+    // keep working off the same numbers
+    const limb = (x, y, rt, hh, rb, color, tipColor, flatTip) => {
       const piv = new T.Group(); piv.position.set(x, y, 0); g.add(piv);
-      box(w, hh, d, color, 0, -hh / 2, 0, piv);
-      if (tipColor) box(w + 0.02, 0.14, d + 0.06, tipColor, 0, -hh + 0.05, -0.02, piv);
+      tube(rt, rb, hh, color, 0, -hh / 2, 0, piv);
+      if (tipColor && flatTip) box(rb * 2 + 0.06, 0.12, rb * 2 + 0.16, tipColor, 0, -hh + 0.05, -0.04, piv);
+      // hands built exactly like the guards': a short tube (0.07 → 0.06, 0.14 tall) sitting at the wrist
+      else if (tipColor) tube(0.07, 0.06, 0.14, tipColor, 0, -hh - 0.05, 0, piv);
       return piv;
     };
     const SKIN = 0xd9a47c, HAIR = 0x1c1410, TEE = 0x2f7a3a, JEANS = 0x1f2a44, SHOE = 0xf2f2f2;
-    g.userData.legL = limb(-0.13, 0.82, 0.2, 0.8, 0.22, JEANS, SHOE);
-    g.userData.legR = limb(0.13, 0.82, 0.2, 0.8, 0.22, JEANS, SHOE);
-    box(0.52, 0.62, 0.28, TEE, 0, 1.13, 0);                         // torso (green tee)
-    g.userData.armL = limb(-0.35, 1.4, 0.16, 0.62, 0.18, TEE, SKIN);
-    g.userData.armR = limb(0.35, 1.4, 0.16, 0.62, 0.18, TEE, SKIN);
-    box(0.14, 0.08, 0.14, SKIN, 0, 1.47, 0);                         // neck
-    const head = new T.Group(); head.position.set(0, 1.68, 0); g.add(head);
-    box(0.36, 0.36, 0.34, SKIN, 0, 0, 0, head);
-    box(0.42, 0.16, 0.4, HAIR, 0, 0.2, 0.01, head);                  // hair: top
-    box(0.42, 0.3, 0.12, HAIR, 0, 0.04, 0.17, head);                 // hair: back
-    box(0.14, 0.1, 0.1, HAIR, -0.1, 0.14, -0.17, head);              // curl over the forehead
-    box(0.13, 0.1, 0.03, 0x111111, -0.085, 0.0, -0.18, head);        // glasses
-    box(0.13, 0.1, 0.03, 0x111111, 0.085, 0.0, -0.18, head);
-    box(0.06, 0.03, 0.03, 0x111111, 0, 0.01, -0.18, head);
+    g.userData.legL = limb(-0.125, 0.82, 0.105, 0.8, 0.085, JEANS, SHOE, true);
+    g.userData.legR = limb(0.125, 0.82, 0.105, 0.8, 0.085, JEANS, SHOE, true);
+    tube(0.23, 0.2, 0.2, JEANS, 0, 0.9, 0);                          // hips
+    tube(0.275, 0.215, 0.58, TEE, 0, 1.2, 0);                        // torso (green tee), shoulders to waist
+    g.userData.armL = limb(-0.315, 1.44, 0.08, 0.62, 0.06, TEE, SKIN);
+    g.userData.armR = limb(0.315, 1.44, 0.08, 0.62, 0.06, TEE, SKIN);
+    tube(0.072, 0.082, 0.1, SKIN, 0, 1.54, 0);                       // neck
+    const head = new T.Group(); head.position.set(0, 1.74, 0); g.add(head);
+    tube(0.163, 0.153, 0.33, SKIN, 0, 0, 0, head);                   // head
+    tube(0.172, 0.167, 0.11, HAIR, 0, 0.15, 0, head);                // hair: top
+    box(0.29, 0.26, 0.1, HAIR, 0, 0.03, 0.13, head);                 // hair: back
+    box(0.12, 0.09, 0.08, HAIR, -0.085, 0.1, -0.12, head);           // curl over the forehead
+    box(0.12, 0.09, 0.03, 0x111111, -0.078, -0.01, -0.158, head);    // glasses
+    box(0.12, 0.09, 0.03, 0x111111, 0.078, -0.01, -0.158, head);
+    box(0.06, 0.03, 0.03, 0x111111, 0, -0.005, -0.158, head);
     g.userData.head = head;
     const sh = new T.Mesh(new T.CircleGeometry(0.42, 12), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 }));
     sh.rotation.x = -Math.PI / 2; sh.position.y = 0.02; g.add(sh);
     return g;
+  }
+
+  // A guard in a navy uniform with a peaked cap and a brass badge. Built from eight-sided prisms rather than cubes:
+  // at this size that reads as rounded shoulders, arms and a head, so they are not four stacks of blocks. The torso
+  // tapers from shoulder to waist and the limbs taper toward wrist and ankle, which is what stops it looking carved
+  // out of boxes. Outdoors the materials join the yard's lamp-lit set so they take the sky colour as the day turns.
+  function buildGuard(outdoor, look = {}) {
+    const g = new T.Group();
+    const mk = (hex) => { const m = new T.MeshLambertMaterial({ color: hex }); return outdoor ? lamplit(m) : m; };
+    const box = (w, hh, d, color, x, y, z) => { const m = new T.Mesh(new T.BoxGeometry(w, hh, d), mk(color)); m.position.set(x, y, z); g.add(m); return m; };
+    // rt / rb = radius at the top and bottom, so a limb can taper
+    const tube = (rt, rb, hh, color, x, y, z, seg = 8) => {
+      const m = new T.Mesh(new T.CylinderGeometry(rt, rb, hh, seg), mk(color)); m.position.set(x, y, z); g.add(m); return m;
+    };
+    const SKIN = look.skin || 0xc98f68, HAIR = look.hair || 0x1a1410;
+    // the yard guard works nights, so his uniform is a few shades lighter — a dark navy out there just reads as
+    // a silhouette no matter how much the lamp lifts it
+    const NAVY = outdoor ? 0x46598a : 0x27344f, DARK = outdoor ? 0x33425f : 0x1b2236;
+    const SHOE = outdoor ? 0x2a2a2a : 0x141414, CAP = outdoor ? 0x2c3a5e : 0x161d2e, BRASS = 0xd8b64a;
+    tube(0.115, 0.085, 0.8, DARK, -0.125, 0.46, 0); tube(0.115, 0.085, 0.8, DARK, 0.125, 0.46, 0);   // legs, tapering to the ankle
+    box(0.2, 0.11, 0.3, SHOE, -0.125, 0.055, -0.03); box(0.2, 0.11, 0.3, SHOE, 0.125, 0.055, -0.03); // shoes
+    tube(0.235, 0.205, 0.2, DARK, 0, 0.94, 0);                                                       // hips
+    const TOP = look.top || NAVY;                                                                    // a visitor wears their own colour
+    tube(0.3, 0.225, 0.62, TOP, 0, 1.32, 0);                                                         // torso: shoulders down to waist
+    if (!look.civ) tube(0.24, 0.235, 0.07, DARK, 0, 1.02, 0);                                        // belt (uniform only)
+    if (!look.civ) box(0.075, 0.075, 0.03, BRASS, -0.15, 1.42, -0.2);                                // badge (uniform only)
+    tube(0.082, 0.062, 0.62, TOP, -0.33, 1.26, 0); tube(0.082, 0.062, 0.62, TOP, 0.33, 1.26, 0);     // arms
+    tube(0.07, 0.06, 0.14, SKIN, -0.33, 0.9, 0); tube(0.07, 0.06, 0.14, SKIN, 0.33, 0.9, 0);         // hands
+    tube(0.075, 0.085, 0.1, SKIN, 0, 1.63, 0);                                                       // neck
+    tube(0.165, 0.155, 0.33, SKIN, 0, 1.83, 0);                                                      // head
+    if (look.civ) {
+      tube(0.178, 0.172, 0.15, HAIR, 0, 2.0, 0);                                                     // full hair top
+      box(0.33, 0.24, 0.12, HAIR, 0, 1.9, 0.13);                                                     // hair back
+      if (look.pony) tube(0.065, 0.04, 0.3, HAIR, 0, 1.84, 0.2, 6);                                  // ponytail
+    } else {
+      tube(0.172, 0.168, 0.09, HAIR, 0, 1.96, 0);                                                    // hair under the cap
+      if (look.pony) tube(0.07, 0.045, 0.28, HAIR, 0, 1.86, 0.17, 6);                                // tied back
+      tube(0.185, 0.19, 0.11, CAP, 0, 2.03, 0);                                                      // cap crown
+      tube(0.2, 0.2, 0.035, CAP, 0, 1.97, 0);                                                        // cap band
+      box(0.3, 0.035, 0.18, CAP, 0, 1.975, -0.23);                                                   // peak
+    }
+    const sh = new T.Mesh(new T.CircleGeometry(0.42, 14), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = 0.02; g.add(sh);
+    if (look.tall) g.scale.setScalar(look.tall);
+    return g;
+  }
+
+  /* ---------------- benches: sitting down ---------------- */
+  // the nearest bench you could drop onto, or null
+  function benchNear() {
+    let best = null, bd = 1.4;
+    for (const b of BENCHES) {
+      const cx = Math.min(Math.max(player.x, b.x0), b.x1), cz = Math.min(Math.max(player.z, b.z0), b.z1);
+      const d = Math.hypot(player.x - cx, player.z - cz);
+      if (d < bd) { bd = d; best = b; }
+    }
+    return best;
+  }
+  function sit(b) {
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, alongX = b.x1 - b.x0 >= b.z1 - b.z0;
+    // you sit down where you walked up to, facing out from the bench rather than along it
+    const sx = alongX ? Math.min(Math.max(player.x, b.x0 + 0.7), b.x1 - 0.7) : cx;
+    const sz = alongX ? cz : Math.min(Math.max(player.z, b.z0 + 0.7), b.z1 - 0.7);
+    const ox = alongX ? 0 : Math.sign(player.x - cx) || 1;
+    const oz = alongX ? Math.sign(player.z - cz) || 1 : 0;
+    player.x = sx; player.z = sz; player.yaw = Math.atan2(-ox, -oz);
+    state.sitting = b; clearKeys();
+  }
+  function stand() {
+    if (!state.sitting) return;
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+    for (let d = 1; d <= 2.4; d += 0.3) {                      // step off the way you were facing
+      const nx = player.x + fx * d, nz = player.z + fz * d;
+      if (walkable(nx, nz)) { player.x = nx; player.z = nz; break; }
+    }
+    state.sitting = null;
   }
 
   /* ---------------- looking at art ---------------- */
@@ -927,36 +1328,57 @@
     const d = state.near.data;
     state.looking = true; clearKeys();
     ui.lookImg.src = d.img; ui.lookImg.alt = d.title;
+    ui.lookImg.style.background = d.viewBg || "";   // logos sit on white; everything else keeps the dark default
     ui.lookTag.textContent = d.tag || "";
     ui.lookH.textContent = d.title;
     ui.lookNote.textContent = d.note || ""; ui.lookNote.style.display = d.note ? "" : "none";
     ui.lookBody.textContent = d.body || ""; ui.lookBody.style.display = d.body ? "" : "none";
     ui.lookActs.innerHTML = "";
-    const back = Object.assign(document.createElement("button"), { type: "button", textContent: "◀ BACK [E]" });
+    // no key names on a touch screen: there is no E or Enter to press there
+    const keys = !matchMedia("(pointer:coarse)").matches;
+    const back = Object.assign(document.createElement("button"), { type: "button", textContent: keys ? "◀ BACK [E]" : "◀ BACK" });
     back.addEventListener("click", closeLook); ui.lookActs.append(back);
     if (d.go) {
-      const go = Object.assign(document.createElement("button"), { type: "button", className: "go", textContent: `${d.goLabel} [ENTER]` });
+      const go = Object.assign(document.createElement("button"), { type: "button", className: "go", textContent: d.goLabel + (keys ? " [ENTER]" : "") });
       go.addEventListener("click", d.go); ui.lookActs.append(go);
     }
     ui.look.classList.add("show");
+    // the console face swaps the d-pad for a way through to the site while you are looking at something
+    state.view = d;
+    root.classList.add("viewing");
+    ui.go.style.display = d.go ? "" : "none";
   }
   function closeLook() {
     if (!state.looking) return;
     state.looking = false;
+    state.view = null;
+    root.classList.remove("viewing");
     ui.look.classList.remove("show");
     ui.lookImg.removeAttribute("src");
     if (root) root.focus({ preventScroll: true });
   }
-  function leaveTo(hash) {
-    close();
+  // `file` (illustration only): once the page is up, open that exact piece rather than dropping you at the top of
+  // the gallery to go hunting for it. The grid is rebuilt by the router, so it takes a few tries before it is there.
+  function leaveTo(hash, file) {
+    close(false);   // you are going somewhere else: leave the focus for the page, not the button you came from
     if (hash === "#about") { const a = document.querySelector('nav a[data-nav="about"]'); if (a) return a.click(); }
     if (location.hash === hash) dispatchEvent(new HashChangeEvent("hashchange")); else location.hash = hash;
+    if (!file) return;
+    let tries = 0;
+    const open = () => {
+      const fig = document.querySelector('#ill figure[data-file="' + file + '"]');
+      if (fig) { fig.scrollIntoView({ block: "center" }); fig.click(); return; }
+      if (++tries < 25) setTimeout(open, 60);
+    };
+    setTimeout(open, 60);
   }
 
   /* ---------------- loop ---------------- */
   function resize() {
     if (!renderer) return;
-    const w = innerWidth, hh = innerHeight;
+    // measure the stage, not the window: on a phone the view is a panel with the controls in bands around it
+    const st = ui.view.parentElement;
+    const w = st.clientWidth || innerWidth, hh = st.clientHeight || innerHeight;
     const rh = Math.min(RENDER_H, hh), rw = Math.max(160, Math.round(rh * w / hh));
     renderer.setSize(rw, rh, false);
     camera.aspect = w / hh;
@@ -966,17 +1388,19 @@
   let tmpColor, camK = 1;
   const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
+  const FPS_CAP = 1000 / 30;   // ~30 fps — easy on the GPU, suits the retro look
   function frame(now) {
     if (!state.open) return;
     state.raf = requestAnimationFrame(frame);
+    if (now - lastT < FPS_CAP) return;             // skip frames to stay at ~30 fps
     const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
     if (!state.ready) return;
 
     let moving = 0;
     if (state.playing && !state.looking) {
       const turn = (keys.left ? 1 : 0) - (keys.right ? 1 : 0);
-      player.yaw += turn * 2.5 * dt;
-      const dir = (keys.up ? 1 : 0) - (keys.down ? 1 : 0);
+      player.yaw += turn * 2.5 * dt;                                   // you can still look around while seated
+      const dir = state.sitting ? 0 : (keys.up ? 1 : 0) - (keys.down ? 1 : 0);
       if (dir) {
         const sp = (dir > 0 ? (keys.run ? 9 : 5) : 3) * dir * dt;
         const nx = player.x - Math.sin(player.yaw) * sp, nz = player.z - Math.cos(player.yaw) * sp;
@@ -989,10 +1413,19 @@
     player.moving += (moving - player.moving) * Math.min(1, dt * 12);
 
     // avatar
-    avatar.position.set(player.x, Math.abs(Math.sin(player.walk)) * 0.05 * player.moving, player.z);
+    const u = avatar.userData, sitY = state.sitting ? -0.21 : 0;   // the seat sits at 0.56, so the hips drop to meet it
+    avatar.position.set(player.x, sitY + Math.abs(Math.sin(player.walk)) * 0.05 * player.moving, player.z);
     avatar.rotation.y = player.yaw;
-    const sw = Math.sin(player.walk) * 0.75 * player.moving, u = avatar.userData;
-    u.legL.rotation.x = sw; u.legR.rotation.x = -sw; u.armL.rotation.x = -sw * 0.8; u.armR.rotation.x = sw * 0.8;
+    const sw = Math.sin(player.walk) * 0.75 * player.moving;
+    if (state.sitting) {
+      // +x swings a limb forward (that is the sign the walk cycle uses for the legs), so these were the wrong way round
+      u.legL.rotation.x = u.legR.rotation.x = 1.45;                 // thighs forward off the bench
+      u.legL.rotation.z = -0.22; u.legR.rotation.z = 0.22;          // knees apart, the way anyone sits
+      u.armL.rotation.x = u.armR.rotation.x = -0.25;                // hands back on the seat
+    } else {
+      u.legL.rotation.z = u.legR.rotation.z = 0;
+      u.legL.rotation.x = sw; u.legR.rotation.x = -sw; u.armL.rotation.x = -sw * 0.8; u.armR.rotation.x = sw * 0.8;
+    }
     u.head.rotation.y = state.playing ? Math.sin(now / 1700) * 0.12 * (1 - player.moving) : 0;
 
     // third-person camera, pulled in when a wall is behind you
@@ -1005,7 +1438,7 @@
     const home = roomAt(player.x, player.z);
     const camOK = (q) => {
       const cx = player.x + (bx * BACK + rx * SIDE) * q, cz = player.z + (bz * BACK + rz * SIDE) * q;
-      return walkable(cx, cz, 0.3) && (!home || roomAt(cx, cz) === home);
+      return walkable(cx, cz, 0.3, !!state.sitting) && (!home || roomAt(cx, cz) === home);
     };
     let k = 0.12;
     while (k < 1 && camOK(k + 0.03)) k += 0.03;
@@ -1014,30 +1447,71 @@
     camera.position.set(player.x + (bx * BACK + rx * SIDE) * k, 2.05 + 0.75 * k, player.z + (bz * BACK + rz * SIDE) * k);
     camera.lookAt(player.x - bx * 6 + rx * SIDE * 0.75 * k, 2.0, player.z - bz * 6 + rz * SIDE * 0.75 * k);
 
-    // outdoors: keep the sky on the visitor's clock, and blend fog + character shading as you step through the door
-    const hr = hourNow();
-    if (Math.abs(hr - yard.hour) > 0.008) applyTime(hr);
+    // outdoors: keep the sky on the visitor's clock, and blend fog + character shading as you step through the door.
+    // The skyline, dome, sun and moon are hidden when you are indoors — no point rendering hundreds of meshes
+    // the player cannot see. They pop back on once you step near the yard door.
     const o = Math.min(1, Math.max(0, (player.x - 8.5) / 2));
+    const outdoorVis = o > 0.01;
+    if (yard.city.visible !== outdoorVis) { yard.city.visible = yard.dome.visible = yard.sun.visible = yard.moon.visible = outdoorVis; }
+    if (outdoorVis) {
+      const hr = hourNow();
+      if (Math.abs(hr - yard.hour) > 0.008) applyTime(hr);
+      yard.dome.position.copy(camera.position);
+      yard.sun.position.copy(camera.position).addScaledVector(yard.sunDir, 420);
+      yard.moon.position.copy(camera.position).addScaledVector(yard.moonDir, 420);
+    }
     scene.fog.color.setHex(0x070707).lerp(yard.haze, o); scene.fog.near = 30 + 90 * o; scene.fog.far = 110 + 850 * o;
     if (Math.abs(o - yard.o) > 0.01) {
       yard.o = o; tmpColor.setHex(0xffffff).lerp(yard.tint, o);
       for (const a of avatarMats) a.mat.color.copy(a.base).multiply(tmpColor);
     }
-    yard.dome.position.copy(camera.position);
-    yard.sun.position.copy(camera.position).addScaledVector(yard.sunDir, 420);
-    yard.moon.position.copy(camera.position).addScaledVector(yard.moonDir, 420);
+
+    // NPCs: guards turn to face you; visitors keep gazing at the art.
+    let g = null, gd = 1e9;
+    for (const q of NPCS) {
+      if (!q.mesh) continue;
+      const dx = player.x - q.x, dz = player.z - q.z, d2 = dx * dx + dz * dz;
+      const want = (q.kind !== "visitor" && d2 < 49) ? Math.atan2(-dx, -dz) : q.yaw;
+      q.mesh.rotation.y += angDiff(want, q.mesh.rotation.y) * (1 - Math.exp(-dt * 4));
+      if (d2 < gd) { gd = d2; g = q; }
+    }
+    state.guard = state.playing && !state.looking && gd < 11 ? g : null;   // close enough to talk to: ~3.3 m
+    if (state.talking && (state.talking !== g || gd > 25)) hush();          // walked off mid-sentence
 
     // HUD
     const rk = roomAt(player.x, player.z);
     if (rk && rk !== state.room) { state.room = rk; ui.room.textContent = "> " + ROOMS[rk].name; ui.time.classList.toggle("show", !!ROOMS[rk].outdoor); }
-    const near = state.playing && !state.looking ? findNear() : state.near;
-    if (near !== state.near || (!state.playing && state.near)) {
-      state.near = state.playing ? near : null;
-      if (state.near) {
-        ui.capT.textContent = state.near.data.title;
-        ui.capK.textContent = matchMedia("(pointer:coarse)").matches ? "TAP LOOK" : "PRESS [E] TO LOOK";
+    // what is in front of you: a piece to look at, a person to listen to, or a bench to sit on.
+    // When an NPC is very close (< 2 m) they take priority over art so you can actually talk to them
+    // even when they are standing in front of a piece.
+    const live = state.playing && !state.looking;
+    const npcClose = state.guard && gd < 4;             // ~2 m
+    state.near = live && !state.sitting && !npcClose ? findNear() : null;
+    state.bench = live && !state.sitting && !state.near && !state.guard ? benchNear() : null;
+    const sig = (state.looking ? "viewing" : state.talking ? "talk:" + (state.talking.kind || "guard") : state.sitting ? "sit" : state.near ? "art:" + state.near.data.title
+      : state.guard ? "npc:" + state.guard.room + ":" + (state.guard.kind || "guard") : state.bench ? "bench" : "");
+    if (sig !== state.sig) {
+      state.sig = sig;
+      const coarse = matchMedia("(pointer:coarse)").matches;
+      let title = "", key = "", label = "LOOK";
+      // looking at a piece: the big button closes it, so your thumb never leaves the bottom of the phone
+      if (state.looking) { label = "BACK"; }
+      else if (state.talking) {
+        const isV = state.talking.kind === "visitor";
+        title = isV ? "GALLERY VISITOR" : "SECURITY GUARD"; key = coarse ? "TAP DONE" : "PRESS [E] WHEN YOU ARE DONE"; label = "DONE";
       }
-      ui.cap.classList.toggle("show", !!state.near);
+      else if (state.sitting) { title = "SITTING"; key = coarse ? "TAP STAND" : "PRESS [E] TO STAND"; label = "STAND"; }
+      else if (state.near) { title = state.near.data.title; key = coarse ? "TAP LOOK" : "PRESS [E] TO LOOK"; }
+      else if (state.guard) {
+        const isV = state.guard.kind === "visitor";
+        title = isV ? "GALLERY VISITOR" : "SECURITY GUARD";
+        key = coarse ? "TAP LISTEN" : "PRESS [E] TO LISTEN";
+        label = "LISTEN";
+      }
+      else if (state.bench) { title = "BENCH"; key = coarse ? "TAP SIT" : "PRESS [E] TO SIT"; label = "SIT"; }
+      if (title) { ui.capT.textContent = title; ui.capK.textContent = key; }
+      ui.cap.classList.toggle("show", !!title);
+      ui.act.textContent = label;
     }
     drawMap();
     renderer.render(scene, camera);
