@@ -28,7 +28,12 @@
     --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bitter",Georgia,serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  /* These fonts default to old-style figures: 0 1 2 sit at x-height while 3 4 5 7 9 hang below the baseline, so a
+     "2" next to capitals looks shrunken ("FIRST 2 PAGES", "9 / 25"). Lining figures put every digit at cap height.
+     font-feature-settings is the same request for Safari versions that predate font-variant-numeric. */
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bitter",Georgia,serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+    font-variant-numeric:lining-nums;-webkit-font-feature-settings:"lnum" 1,"onum" 0;font-feature-settings:"lnum" 1,"onum" 0}
+  @supports (overflow:clip){body{overflow-x:clip}}   /* clips the same, but (unlike hidden) does not turn the page into a scroll box — keeps the sticky bar steady on iOS */
   body::before{content:"";position:fixed;inset:0;background-image:var(--grain);opacity:.055;pointer-events:none;z-index:100}
   img{display:block;max-width:100%}
   a{color:inherit}
@@ -46,7 +51,9 @@
   body.proj nav a .ul path{stroke:var(--p-hdrul)}
   body.proj nav a.cta{color:var(--p-hdrink);border-color:var(--p-hdrink);background:transparent}
   @media (hover:hover) and (min-width:721px){body.proj nav a.cta:hover{background:var(--p-hdrul);color:var(--p-hdrctahover,#fff);box-shadow:4px 4px 0 var(--p-hdrink)}}
-  body.proj .menu-btn{background:transparent;color:var(--p-hdrink);border-color:var(--p-hdrink);box-shadow:3px 3px 0 var(--p-hdrink)}
+  body.proj .menu-btn{background:transparent;color:var(--p-hdrink);border-color:var(--p-hdrink);box-shadow:4px 4px 0 var(--p-hdrink)}
+  body.proj .menu-btn[aria-expanded="true"]{background:var(--p-hdrul);color:var(--p-hdrctahover,#fff);border-color:var(--p-hdrul);box-shadow:1px 1px 0 var(--p-hdrink)}
+  body.proj .menu-btn:active{box-shadow:1px 1px 0 var(--p-hdrink)}
   body.proj.duo .logo-svg image{filter:url(#duo)}
   .bar{display:flex;align-items:center;justify-content:space-between;gap:24px;height:92px}
   .logo{position:relative;display:block;width:280px;height:56px;flex:none}
@@ -76,7 +83,21 @@
   nav a.cta{border:2px solid var(--ink);padding:3px 11px 4px;font-size:18px;background:var(--paper);box-shadow:0 0 0 var(--ink);margin-left:6px;transition:color .2s,background .2s,box-shadow .2s}
   nav a.cta::after{display:none}
   @media (hover:hover) and (min-width:721px){nav a.cta:hover{background:var(--green);color:#fff;box-shadow:4px 4px 0 var(--ink)}}
-  .menu-btn{display:none;background:var(--paper);border:2px solid var(--ink);font:700 14px var(--label);letter-spacing:.08em;padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+  /* menu button: the site's stamped-box look — thick rule, hard offset shadow, Zilla Slab caps.
+     Open: it fills with the accent and the bars fold into an X. */
+  .menu-btn{display:none;align-items:center;gap:10px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);
+    font:700 16px/1 var(--label);font-variant-numeric:lining-nums;letter-spacing:.1em;text-transform:uppercase;padding:11px 14px;cursor:pointer;
+    box-shadow:4px 4px 0 var(--ink);-webkit-tap-highlight-color:transparent;
+    transition:background .2s,color .2s,border-color .2s,box-shadow .2s,transform .2s}
+  .menu-btn .mb-i{position:relative;display:block;width:21px;height:2.5px;background:currentColor;transition:background .15s}
+  .menu-btn .mb-i::before,.menu-btn .mb-i::after{content:"";position:absolute;left:0;width:21px;height:2.5px;background:currentColor;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+  .menu-btn .mb-i::before{top:-7px}
+  .menu-btn .mb-i::after{top:7px}
+  .menu-btn[aria-expanded="true"]{background:var(--green);color:#fff;border-color:var(--green);box-shadow:1px 1px 0 var(--ink);transform:translate(3px,3px)}
+  .menu-btn[aria-expanded="true"] .mb-i{background:transparent}
+  .menu-btn[aria-expanded="true"] .mb-i::before{transform:translateY(7px) rotate(45deg)}
+  .menu-btn[aria-expanded="true"] .mb-i::after{transform:translateY(-7px) rotate(-45deg)}
+  .menu-btn:active{box-shadow:1px 1px 0 var(--ink);transform:translate(3px,3px)}
 
   main{min-height:70vh}
   section.view{display:none;animation:fade .4s ease}
@@ -193,7 +214,7 @@
   .back .ar{font-size:1.45em;line-height:0;vertical-align:-.08em}
   .back{font-family:var(--label);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:13px;text-decoration:none;color:var(--p-ink);border-bottom:2px solid var(--p-accent);padding-bottom:2px}
   .proj-top .back{display:inline-block;color:var(--p-onbg,var(--p-ink));border-color:var(--p-onbg,var(--p-accent));text-shadow:var(--p-onshadow,none);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
-  @media (hover:hover) and (min-width:721px){.proj-top .back:hover{color:var(--p-onbg,var(--p-ink));transform:scale(1.08)}}
+  @media (hover:hover) and (min-width:721px){.proj-top .back:hover{transform:scale(1.08)}}
   .proj-top .back:not(.nextp){transform-origin:left center}
   .proj-top .nextp{transform-origin:right center}
   .back .ar{display:inline-block;font-style:normal;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
@@ -266,6 +287,9 @@
   .compare .cbx.old{width:100%;max-width:400px}
   .compare .side:first-child .cbx.old{max-width:520px}
   @media (max-width:860px){.compare{grid-template-columns:1fr;height:auto;padding:0 18px;gap:28px}.compare .cbx.mid{height:auto;width:100%}}
+  /* stacked on a phone, the old logos sit above and below the new one — they are the reference, so they read smaller */
+  @media (max-width:720px){.compare .cbx.old,.compare .side:first-child .cbx.old{max-width:300px}
+    .compare .side:last-child .cbx.old{max-width:235px}}   /* its crop is squarer, so the same width reads much bigger */
   .compare .cbx img{position:absolute;max-width:none}
   /* previous / next: plain and quick to use */
   /* previous / next: two wide halves, big names, the arrow does the talking */
@@ -285,7 +309,8 @@
   @media (hover:hover) and (min-width:721px){.pager .prev:hover .arr{transform:translateX(-10px)}}
   @media (hover:hover) and (min-width:721px){.pager .next:hover .arr{transform:translateX(10px)}}
   .pager small{display:block;font-family:var(--label);font-weight:700;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--p-muted)}
-  .pager b{display:block;font-family:var(--p-head);font-weight:var(--p-headw,600);text-transform:var(--p-case,none);letter-spacing:var(--p-track,0);font-size:clamp(28px,3vw,42px);line-height:1.05;margin:10px 0 8px}
+  /* reserve two lines for the name so every project's pager is the same height as one with a long, wrapping name (e.g. Luxor's "Home Detroit & Detroit Progress") */
+  .pager b{display:block;min-height:2.1em;font-family:var(--p-head);font-weight:var(--p-headw,600);text-transform:var(--p-case,none);letter-spacing:var(--p-track,0);font-size:clamp(28px,3vw,42px);line-height:1.05;margin:10px 0 8px}
   .pager em{display:block;font-style:normal;font-size:16px;color:var(--p-muted)}
   .allrow{text-align:center;padding:30px 0 80px}
   .allrow{padding:44px 0 90px}
@@ -314,13 +339,25 @@
   @media (hover:hover) and (min-width:721px){.row figure:hover{box-shadow:7px 7px 0 var(--ink);outline-color:var(--ink)}}
   /* comics in the illustration grid: on hover a "read" bar slides up from the bottom edge of the cover */
   .row figure.book{cursor:pointer}
-  .row figure.book::after{content:"Read the comic →";position:absolute;left:0;right:0;bottom:0;height:40px;box-sizing:border-box;border:3px solid var(--ink);display:flex;align-items:center;justify-content:center;white-space:nowrap;z-index:2;
-    font-family:var(--label);font-weight:700;font-size:clamp(10px,.95vw,13px);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:#fff;
-    transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+  /* A dark veil that fades out going up, with the words sitting in the darkest part of it. The cover reads straight
+     through, so the bar can simply stay there instead of sliding up on hover — which means it looks the same on a
+     phone as it does here. Hovering only deepens the veil a little, as a nudge that it is clickable. */
+  .row figure.book::after{content:"Read the comic →";position:absolute;left:0;right:0;bottom:0;height:40px;box-sizing:border-box;border:0;
+    display:flex;align-items:flex-end;justify-content:center;white-space:nowrap;z-index:2;padding:0 10px 8px;
+    font-family:var(--label);font-weight:700;font-size:clamp(11px,1vw,13px);letter-spacing:.06em;text-transform:uppercase;color:#fff;
+    background:linear-gradient(to top,rgba(10,8,6,.74),rgba(10,8,6,.40) 55%,rgba(10,8,6,0));
+    text-shadow:0 1px 3px rgba(0,0,0,.8);transition:background .25s;pointer-events:none}
   .row figure.book[data-file^="63832e1b"]::after{content:"Read the first 2 pages →"}
-  @media (hover:hover) and (min-width:721px){.row figure.book:hover::after{transform:none}}
-  .row figure.book:focus-visible::after{transform:none}
-  @media (hover:none), (max-width:720px){.row figure.book::after{transform:none}}   /* phones: no hover, so it stays put */
+  @media (hover:hover) and (min-width:721px){
+    .row figure.book:hover::after{background:linear-gradient(to top,rgba(10,8,6,.9),rgba(10,8,6,.62) 55%,rgba(10,8,6,.12))}
+  }
+  .row figure.book:focus-visible::after{background:linear-gradient(to top,rgba(10,8,6,.9),rgba(10,8,6,.62) 55%,rgba(10,8,6,.12))}
+  /* phones differ in two small ways only: the type scales with the screen, and the long label is shortened because
+     these two covers share a row there and it would otherwise be cut off */
+  @media (hover:none), (max-width:720px){
+    .row figure.book::after{height:38px;padding:0 8px 7px;font-size:clamp(10px,2.9vw,13px)}
+    .row figure.book[data-file^="63832e1b"]::after{content:"First 2 pages →"}
+  }
   .row figure img,.row figure video{width:100%;height:100%;object-fit:cover}
   .row figure.vid{cursor:default}
   #v-project .row figure{background:transparent}
@@ -360,7 +397,7 @@
 
   /* ---------- illustration ---------- */
   .filters{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;padding:24px 0 34px}
-  .filters button{font:700 15px var(--label);letter-spacing:.06em;text-transform:uppercase;background:var(--paper);border:2px solid var(--ink);padding:6px 16px;cursor:pointer;color:var(--ink);transition:transform .15s,box-shadow .15s,background .2s,color .2s}
+  .filters button{font:700 15px var(--label);font-variant-numeric:lining-nums;letter-spacing:.06em;text-transform:uppercase;background:var(--paper);border:2px solid var(--ink);padding:6px 16px;cursor:pointer;color:var(--ink);transition:transform .15s,box-shadow .15s,background .2s,color .2s}
   @media (hover:hover) and (min-width:721px){.filters button:hover{box-shadow:4px 4px 0 var(--ink)}}
   .filters button.on{background:var(--green);color:#fff;border-color:var(--green);box-shadow:4px 4px 0 var(--ink);transform:translateY(-2px)}
   .filters button small{opacity:.6;margin-left:6px}
@@ -385,7 +422,7 @@
   .mural-media .row:last-child{margin-bottom:0}
 
   /* ---------- footer ---------- */
-  footer{position:relative;background:var(--ink);color:#e9e6dd;margin-top:0;overflow:hidden}
+  footer{position:relative;background:var(--ink);color:#e9e6dd;margin-top:0;overflow:hidden;transform:translateZ(0)}   /* own layer: iOS repaints it when the heading reflows on font load, instead of leaving the lower half unpainted */
   footer::before{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.14;pointer-events:none}
   footer .wrap{position:relative;padding-top:74px;padding-bottom:34px}
   .foot-big{font-family:var(--display);font-size:clamp(36px,5.4vw,72px);line-height:1;margin:0 0 26px;color:#fff}
@@ -412,7 +449,7 @@
   .lb .cap{position:absolute;left:90px;right:90px;bottom:38px;text-align:center;color:#bbb;font-size:13px;line-height:1.45;pointer-events:none}
   .lb .cap b{display:block;color:#fff;font-family:var(--label);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
   .lb .cap span{display:block;max-width:760px;margin:2px auto 0}
-  .lb button{position:absolute;background:none;border:2px solid #fff;color:#fff;font:700 18px var(--label);width:48px;height:48px;cursor:pointer;transition:background .2s,color .2s}
+  .lb button{position:absolute;background:none;border:2px solid #fff;color:#fff;font:700 18px var(--label);font-variant-numeric:lining-nums;width:48px;height:48px;cursor:pointer;transition:background .2s,color .2s}
   @media (hover:hover) and (min-width:721px){.lb button:hover{background:var(--green);border-color:var(--green)}}
   .lb .x{top:20px;right:20px}
   .lb .prev{left:20px;top:50%;transform:translateY(-50%)}
@@ -425,21 +462,65 @@
     .proj-intro{grid-template-columns:1fr;gap:16px}
   }
   @media (max-width:720px){
+    body:not(.proj) header{background:var(--bg)}   /* solid on a phone: nothing shows through the bar */
+    /* The see-through strip above the bar: Safari drags a sticky bar behind your finger as you flick, and the page
+       shows through the gap. It cannot be covered by anything fixed, because iOS offsets fixed elements by the same
+       amount at the same moment. So the bar carries its own cover: it is given extra background above itself
+       (padding) and is stuck that much higher (top:-96px), with a matching negative margin so it still sits where it
+       always did. Whatever the bar lags by, that band is the bar's own colour, because it IS the bar. 96px is deep
+       enough to outrun a hard flick; the band lives off-screen the rest of the time, so the depth costs nothing. */
+    header{top:-96px;padding-top:96px;margin-top:-96px}
     body{font-size:16px}
     .wrap{padding:0 18px}
     .bar{height:70px}
     .logo{width:200px;height:40px}
-    .menu-btn{display:block}
-    nav{display:none;position:absolute;top:70px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:var(--bg);border-bottom:2px solid var(--ink);padding:6px 18px 16px}
-    nav.open{display:flex}
+    .menu-btn{display:inline-flex}
+    nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:var(--bg);
+      border-bottom:3px solid var(--ink);padding:6px 18px 18px;max-height:calc(100vh - 70px);overflow:auto;
+      box-shadow:0 18px 30px -22px rgba(0,0,0,.5)}
+    nav.open{display:flex;animation:navdrop .26s cubic-bezier(.2,.8,.2,1)}
+    @keyframes navdrop{from{opacity:0;transform:translateY(-10px)}}
+    nav.open a{animation:navitem .32s cubic-bezier(.2,.8,.2,1) backwards}
+    /* the drop-down follows the same order as the tiles; every item needs an order or the unset ones jump to the top */
+    nav a[data-nav="graphic-design"]{order:1}
+    nav a[data-nav="illustration"]{order:2}
+    nav a[data-nav="murals"]{order:3}
+    nav a[data-nav="about"]{order:4}
+    nav a.cta{order:5}
+    nav .game-toggle{order:6}
+    nav.open a[data-nav="graphic-design"]{animation-delay:.03s}
+    nav.open a[data-nav="illustration"]{animation-delay:.06s}
+    nav.open a[data-nav="murals"]{animation-delay:.09s}
+    nav.open a[data-nav="about"]{animation-delay:.12s}
+    nav.open a.cta{animation-delay:.15s}
+    @keyframes navitem{from{opacity:0;transform:translateX(-14px)}}
+    /* a project's header colour is semi-transparent (it is meant to sit over that project's art). On a phone the bar
+       and the drop-down have to be solid, or the page shows straight through them — so the project colour is laid
+       over that project's own page colour instead. */
+    body.proj header,body.proj nav{background-color:var(--p-bg);background-image:linear-gradient(var(--p-hdrbg),var(--p-hdrbg))}
+    body.proj nav{border-bottom-color:var(--p-hdrink)}
+    body.proj nav a.active{color:var(--p-hdrhi)}   /* and the marker beside it follows, via currentColor */
+    body.proj nav a{border-bottom-color:rgba(255,255,255,.18)}
     nav a{padding:12px 0;border-bottom:1px solid rgba(0,0,0,.1)}
     nav a .ul{display:none}
     nav a.cta{margin-left:0}
     nav a.active{color:var(--green)}
+    nav a{position:relative;padding-left:16px}
+    nav a::before{content:"";position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-3.5px;background:currentColor;opacity:0;transform:scale(.4);transition:opacity .2s,transform .2s}
+    nav a.active::before{opacity:1;transform:none}
+    nav a.cta{padding-left:0}
+    nav a.cta::before{display:none}
     nav a.cta{margin-top:12px;text-align:center}
+    /* the photo is tilted and throws a hard 14px shadow down and to the right; the band clips its overflow, so the
+       picture is pulled in a little to leave that shadow somewhere to land */
+    .portrait-wrap{width:calc(100% - 44px)}
     .hero{min-height:0;padding:28px 18px 80px}
     .tiles{flex-direction:column;gap:24px}
     .tile{width:min(82vw,380px)}
+    /* stacked on a phone, Graphic Design reads first (the entrance delays follow the new order, not the html) */
+    .tile[href="#graphic-design"]{order:1;animation-delay:.05s}
+    .tile[href="#illustration"]{order:2;animation-delay:.17s}
+    .tile[href="#murals"]{order:3;animation-delay:.29s}
     .gd-grid{grid-template-columns:1fr}
     .ill{width:auto;margin-left:0}
     .gd-card:last-child:nth-child(3n+1){grid-column:auto}
@@ -453,13 +534,21 @@
     .row.keep{flex-wrap:nowrap;gap:8px}
     .row.keep figure{flex:var(--f) 1 0 !important;aspect-ratio:var(--ar) !important}
     .row.keep figure img{height:100%}
+    /* mstack: side by side on a desktop, one above the other on a phone */
+    .row.mstack{flex-wrap:wrap !important;gap:16px !important}
+    .row.mstack figure{flex:1 1 100% !important;aspect-ratio:var(--ar) !important;max-width:calc(74vh * var(--ar));margin-left:auto;margin-right:auto}
     .compare{grid-template-columns:1fr !important}
     .trio{grid-template-columns:1fr !important;height:auto !important;gap:26px}
     .trio .cell{height:240px}
-    .pager{grid-template-columns:1fr}
+    .pager{grid-template-columns:1fr;margin-top:56px}      /* stacked, with a buffer above so it never hugs the last photo */
+    .screen + .pager{margin-top:56px}                      /* keep that buffer even when the last block is a full-bleed screen */
     .pager .pn,.pager .pn.next{padding:34px 18px;gap:18px}
     .pager .pn.next{border-left:0;border-top:3px solid var(--p-line)}
     .pager .arr{font-size:32px}
+    /* smaller name so a long one (e.g. "Home Detroit & Detroit Progress") fits without blowing the button out */
+    .pager .pn > span{min-width:0}
+    .pager b{font-size:19px;line-height:1.2}
+    .proj-top .longw{display:none}   /* "← All graphic design" / "Next: DJ Hayko →" become "← All" / "Next →" */
     .specs div + div{padding-left:0;border-left:0;border-top:1px solid var(--p-line)}
     .lb .prev,.lb .nxt{top:auto;bottom:14px;transform:none}
     .lb.capd img{max-height:66vh;margin-bottom:14vh}
@@ -473,13 +562,15 @@
     .gd-card.lit .card-body{box-shadow:4px 4px 0 var(--ink)}
     .gd-card.lit .swap{transform:scale(1.07)}
     .gd-card.lit .swap .on{opacity:1}.gd-card.lit .swap .off{opacity:0}
+    /* phone screens are dimmer and often held outdoors: the white Lia Lucine logo needs a heavier shadow
+       under it than it does on a monitor, or it floats off the cream card */
+    .gd-card.lia-lucine .swap .on{filter:drop-shadow(0 0 .8px rgba(0,0,0,.62)) drop-shadow(0 2px 7px rgba(0,0,0,.6))}
     .gd-card.lit .arrow{opacity:1;transform:none}
     .enough.lit{transform:scale(1.12)}
     .enough.lit::after{background:#fff}
     .enough.lit .bt,.enough.lit .bb{transform:none}
     .enough.lit .bl,.enough.lit .br{transform:scaleX(.5)}
     .enough.lit .on{opacity:1;transition:opacity .14s ease .08s}.enough.lit .off{opacity:0;transition:opacity .14s ease .08s}
-    .portrait-wrap.lit .portrait{transform:rotate(0) translate(-3px,-3px) translateZ(0)}
     .pager.fill .pn.lit b{background:var(--p-pagerfill) center/cover;-webkit-background-clip:text;background-clip:text;color:transparent}
     .pager .pn.lit{background:var(--p-pagerhover,var(--p-card))}
     .pager .next.lit .arr{transform:translateX(8px)}.pager .prev.lit .arr{transform:translateX(-8px)}
@@ -488,23 +579,27 @@
     /* full-screen picture sections: show the whole picture at its own shape (no cropping) */
     .screen{height:auto !important;min-height:0 !important;display:block}
     .screen.cover > img,.screen.frame > img,.screen.whole > img,.screen.mark > img,.screen.fill > img.main{position:static;display:block;width:100%;height:auto;max-width:100%;max-height:none;object-fit:contain;margin:0 auto}
-    .screen.mark > img{width:var(--s-w,86%);padding:28px 0}
+    .screen > img{transform:scale(var(--s-mzoom,1));transform-origin:center var(--s-mzoomy,50%)}
+    .screen.mark > img{width:var(--s-mw,var(--s-w,86%));padding:44px 0}
     .screen.fill > img.blur{display:none}
     .screen .cell{width:100% !important;height:auto !important;container-type:inline-size}
-    .screen.mark .cell{width:var(--s-w,86%) !important;margin:0 auto;padding:26px 0}   /* keeps the step-down sizes of the responsive logo set */
+    .screen.mark .cell{width:var(--s-mw,var(--s-w,86%)) !important;margin:0 auto;padding:44px 0}   /* keeps the step-down sizes of the responsive logo set, with more air between them */
     .screen .cb{width:100%}
     /* side-by-side groups that stack on a phone: each picture at its own shape, never a squeezed box */
     .trio .cell{height:auto;container-type:inline-size}
-    .trio .cb{width:min(100cqw, 72vh * var(--ar))}
+    .trio .cb{width:calc(min(100cqw, 72vh * var(--ar)) * var(--sc-m,1))}   /* --sc-m shrinks a single piece on phones only */
     .trio.cards .cell{padding:20px}
     /* project hero: shorter, bigger logo */
     .proj-hero{height:auto;min-height:62vh;padding:96px 18px 64px}
-    .proj-hero img{max-width:88%;max-height:46vh}
+    .proj-hero img{max-width:100%;max-height:52vh}
     .proj-hero img.photo{max-width:100%;max-height:60vh}
   }
 
   /* ---------- comic book viewer ---------- */
   .bk{position:fixed;inset:0;z-index:300;background:rgba(14,14,14,.93);display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+  /* a spread puts two pages on one phone screen, so each is half the width it used to be. Allowing the browser's own
+     pinch means two fingers zoom into the artwork while one finger still drags pages over. */
+  @media (hover:none){.bk{touch-action:pinch-zoom}}
   .bk.open{display:flex}
   .bk-stage{position:relative;width:calc(var(--w) * 2);height:var(--h);transition:transform .6s cubic-bezier(.3,.1,.3,1);filter:drop-shadow(0 18px 30px rgba(0,0,0,.5))}
   .bk-leaf{position:absolute;left:50%;top:0;width:var(--w);height:var(--h);transform-origin:0 50%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,.1,.3,1);cursor:pointer;will-change:transform}
@@ -516,19 +611,39 @@
   .bk-face.blank{background:#f4f1e8}
   .bk-single{display:none;max-width:96vw;max-height:80vh;box-shadow:0 12px 26px rgba(0,0,0,.5);transition:opacity .18s ease,transform .18s ease}
   .bk.single .bk-stage{display:none}.bk.single .bk-single{display:block}
-  .bk-bar{display:flex;align-items:center;gap:16px;color:#ddd;font:700 13px var(--label);letter-spacing:.1em;text-transform:uppercase}
-  .bk-bar button,.bk-x{background:none;border:2px solid #fff;color:#fff;font:700 18px var(--label);width:44px;height:44px;cursor:pointer;transition:background .2s,border-color .2s,opacity .2s}
+  .bk-bar{display:flex;align-items:center;gap:16px;color:#ddd;font:700 13px var(--label);font-variant-numeric:lining-nums;letter-spacing:.1em;text-transform:uppercase}
+  .bk-bar button,.bk-x{background:none;border:2px solid #fff;color:#fff;font:700 18px var(--label);font-variant-numeric:lining-nums;width:44px;height:44px;cursor:pointer;transition:background .2s,border-color .2s,opacity .2s}
   .bk-bar button:disabled{opacity:.25;cursor:default}
   @media (hover:hover) and (min-width:721px){.bk-bar button:not(:disabled):hover,.bk-x:hover{background:var(--green);border-color:var(--green)}}
   .bk-x{position:absolute;top:18px;right:18px;z-index:5}
-  .bk-art{position:absolute;top:50%;transform:translateY(-50%);z-index:5;background:none;border:2px solid #fff;color:#fff;font:700 18px var(--label);width:48px;height:48px;cursor:pointer;transition:background .2s,border-color .2s}
+  .bk-art{position:absolute;top:50%;transform:translateY(-50%);z-index:5;background:none;border:2px solid #fff;color:#fff;font:700 18px var(--label);font-variant-numeric:lining-nums;width:48px;height:48px;cursor:pointer;transition:background .2s,border-color .2s}
   .bk-art.pa{left:20px}.bk-art.na{right:20px}
+  /* narrow screens: next/previous artwork drops to the bottom corners, either side of the page controls */
+  .bk.narrow .bk-art{top:auto;bottom:14px;transform:none;width:42px;height:42px;font-size:16px}
+  .bk.narrow .bk-art.pa{left:12px}.bk.narrow .bk-art.na{right:12px}
   @media (hover:hover) and (min-width:721px){.bk-art:hover{background:var(--green);border-color:var(--green)}}
   .bk.single .bk-art,.bk.solo .bk-art{display:none}
   .bk-bar button{width:34px;height:34px;font-size:15px;border-width:1.5px}
   .bk-count{min-width:120px;text-align:center}
   .bk-hint{color:#999;font-size:12px;letter-spacing:.08em}
-  @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+  /* "Reduce motion" (iOS: Settings > Accessibility > Motion) used to switch off every animation and transition on the
+     site, which left it completely static. Now only the things that actually cause motion sickness stop — anything
+     that loops forever, travels across the screen, or moves with the scroll. The reveals stay: pictures still fade
+     and paint themselves in, buttons still react, because none of those move the page around. */
+  @media (prefers-reduced-motion:reduce){
+    .scroll-cue span,.cue{animation:none!important}   /* endless loops: bobbing arrow, scroll cue */
+    /* the museum switch keeps blinking: it is a small, slow pulse and it is the only thing telling you it is a switch */
+    /* the banner keeps rolling — at its own steady pace, since the scroll-driven version is switched off below */
+    /* body.proj::after parallax kept — it is scroll-driven, not an animation */
+    .tile,.tile-svg,.portrait,.enough{transition-property:opacity,box-shadow,background-color,filter!important}   /* no growing / tilting */
+    .enough.lit,.gd-card.lit .swap{transform:none!important}
+    /* entrances fade in instead of sliding up */
+    @keyframes rise{from{opacity:0}to{opacity:1}}
+    @keyframes pop{from{opacity:0}to{opacity:1}}
+    @keyframes fade{from{opacity:0}to{opacity:1}}
+    @keyframes navdrop{from{opacity:0}}
+    @keyframes navitem{from{opacity:0}}
+  }
 
   /* phones / touch: no hover. The home tiles show their drawing as they scroll into view instead */
   @media (hover:none), (max-width:720px){
@@ -552,7 +667,7 @@
         <image class="js-logo" data-file="d5df029a672748df923f671de119ce81.webp" width="620" height="122" mask="url(#m-on)"/>
       </svg>
     </a>
-    <button class="menu-btn" aria-expanded="false" aria-controls="nav">MENU</button>
+    <button class="menu-btn" aria-expanded="false" aria-controls="nav"><span class="mb-i" aria-hidden="true"></span><span class="mb-t">Menu</span></button>
     <nav id="nav">
       <a href="#illustration" data-nav="illustration">Illustration</a>
       <a href="#graphic-design" data-nav="graphic-design">Graphic Design</a>
@@ -712,20 +827,20 @@ function V(id, w, h){ return {video:id, w, h}; }
 const PROJECTS = [
   {
     slug:"luxor", name:"Luxor Jewelry", type:"Logo redesign & packaging",
-    header:{bg:"rgba(185,158,112,.95)", ink:"#1d140a", hi:"#5a3610", ul:"#7e5019", duo:["#1d140a","#7e5019","#7e5019","#f3e6cc","#f3e6cc"]},
-    theme:{bg:"#c8b38f", ink:"#1d140a", muted:"#5e4a2c", accent:"#7e5019", line:"rgba(29,20,10,.28)", card:"#d8c6a6", head:"Gelasio", body:"Gelasio", heroBg:"#b99e70"},
+    header:{bg:"rgba(185,158,112,.95)", ink:"#3f250a", hi:"#5a3610", ul:"#7e5019", duo:["#3f250a","#7e5019","#7e5019","#f3e6cc","#f3e6cc"]},
+    theme:{bg:"#c8b38f", ink:"#1d140a", muted:"#5e4a2c", accent:"#7e5019", line:"rgba(29,20,10,.28)", card:"#d8c6a6", head:"Gelasio", body:"Gelasio", heroBg:"#b99e70", onbg:"#3f250a", heroInk:"#3f250a"},
     endsOnScreen:true, cover:"a9a882676dd04fa6a02d0d2afed057bd.jpg",
     tile:["1847d5a199b54ecc84d87a18b3e7edd4.webp","c4c21468cb6e4c78b7bd5359b1531666.webp"],
     hero:{img:"c4c21468cb6e4c78b7bd5359b1531666.webp", bg:"#cdb48f"},
     facts:[["Client","Luxor Jewelry"],["Project","Logo redesign"],["Deliverables","Logo, packaging mockups, responsive logo set"]],
     text:"This logo redesign was about telling a story and respecting the jewelry business’s history. Rather than starting over, bits and pieces from past logos were used as inspiration to create something new. The final mark feels recognizable, bold, and strong enough to stand on its own.",
     sections:[
-      {screen:{f:"a9a882676dd04fa6a02d0d2afed057bd.jpg"}},
-      {label:"Packaging mockups", cols:"1fr 1.35fr 1fr", trio:[{f:"0ba5873130df4c1a88e24e22360f493b.webp", W:1600, H:1115, crop:[.23,.01,.54,.98], sc:.84},{f:"4cf3396405454c4396f184b5b97ba03c.webp", W:1102, H:1100, crop:[.02,.14,.96,.70]},{f:"ebb431ef17df474fac6ede9a3f2caf6f.webp", W:1600, H:1664, crop:[0,.15,1,.72]}]},
+      {screen:{f:"a9a882676dd04fa6a02d0d2afed057bd.jpg", mzoom:1.5, mzoomy:"63%"}},
+      {label:"Packaging mockups", cols:"1fr 1.35fr 1fr", trio:[{f:"0ba5873130df4c1a88e24e22360f493b.webp", W:1600, H:1115, crop:[.23,.01,.54,.98], sc:.76, msc:.52},{f:"4cf3396405454c4396f184b5b97ba03c.webp", W:1102, H:1100, crop:[.02,.14,.96,.70]},{f:"ebb431ef17df474fac6ede9a3f2caf6f.webp", W:1600, H:1664, crop:[0,.15,1,.72], msc:.74}]},
       {screen:{f:"1e3c1911cdcb48c7a6f575f8a286d438.jpg", mode:"frame", w:"1180px"}},
       {label:"Responsiveness", screen:{f:"c4c21468cb6e4c78b7bd5359b1531666.webp", W:3000, H:1500, crop:[.1,.13,.8,.74], mode:"mark", w:"80%", h:"72%", vh:.5}},
-      {screen:{f:"c8aa65897b6a4164ab5dbfe83555a5c1.webp", W:2400, H:1855, crop:[.11,.31,.78,.36], mode:"mark", w:"70%", h:"46%", vh:.4}},
-      {screen:{f:"f7d5eaca58c54b07a906a96cd0d5ebcd.webp", W:2400, H:1855, crop:[.31,.32,.38,.38], mode:"mark", w:"50%", h:"47%", vh:.4}},
+      {screen:{f:"c8aa65897b6a4164ab5dbfe83555a5c1.webp", W:2400, H:1855, crop:[.11,.31,.78,.36], mode:"mark", w:"70%", mw:"58%", h:"46%", vh:.4}},
+      {screen:{f:"f7d5eaca58c54b07a906a96cd0d5ebcd.webp", W:2400, H:1855, crop:[.31,.32,.38,.38], mode:"mark", w:"50%", mw:"24%", h:"47%", vh:.4}},
       {label:"Past logo inspirations", compare:{cols:"1.35fr auto 1fr", top:[{f:"74e04375b3a444f087766ab2ad1ec981.webp", W:1600, H:1236, crop:[.0,.30,1,.40], k:.72},{f:"a805e87c24a3466c89c6265161858d99.webp", W:1600, H:1236, crop:[.05,.17,.92,.70], k:.72}], bottom:{f:"34f823494dd04b35806e7a336b12812a.webp", W:2000, H:2000, crop:[.02,.11,.97,.87], k:1.16}}},
       {screen:{f:"beea544b9e72402ea6952cba1f5a6b4b.jpg"}}
     ]
@@ -739,9 +854,9 @@ const PROJECTS = [
     facts:[["Client","DJ Hayko"],["Project","Brand identity"],["Deliverables","Logo system, event flyers, Instagram posts, photo-manipulated scenes"]],
     text:"This project began as an exploration of branding within music and event culture, centered around DJ Hayko. I designed a logo system, event flyers, and Instagram post mockups, then pushed the identity into real-world space through photo-manipulated downtown scenes. The work reflects my interest in building brands that feel physical, lived-in, and unmistakably present beyond the screen.",
     sections:[
-      {label:"Flyers", gap:90, keep:true, rows:[[I("f1c476910a12448a99f650bd30897748.jpg:611:999","",null,{maxH:760}),I("eb0744b59a264e98a7679ecbdece20ff.jpg:611:999","",null,{maxH:760})]]},
+      {label:"Flyers", gap:90, keep:true, mstack:true, rows:[[I("f1c476910a12448a99f650bd30897748.jpg:611:999","",null,{maxH:760}),I("eb0744b59a264e98a7679ecbdece20ff.jpg:611:999","",null,{maxH:760})]]},
       {label:"In the wild", band:{img:"7f99843194754fb7afc7e923d2c5713d.jpg", fold:[2400,1792,.5415,.68], bg:"#efefef", ink:"#2a1840", accent:"#4b2d69", line:"#4b2d69", pad:40}, rows:[[I("b96e8073d93245fab32bfbac300cd762.jpg:2400:1200","",null,{maxH:540})],[I("23c3800ced9e459da7a577a77c944323.webp:2000:1000","",null,{maxH:250,cls:"cutout"})]]},
-      {label:"Social media", gap:70, keep:true, rows:[[I("b59d93741dfd4713b1e8b5ecffe551d4.webp:2400:1855","",null,{crop:[.062,.177,.248,.64],maxH:720}),I("b59d93741dfd4713b1e8b5ecffe551d4.webp:2400:1855","",null,{crop:[.376,.177,.248,.64],maxH:720}),I("b59d93741dfd4713b1e8b5ecffe551d4.webp:2400:1855","",null,{crop:[.693,.177,.248,.64],maxH:720})]]},
+      {label:"Social media", gap:70, keep:true, mstack:true, rows:[[I("b59d93741dfd4713b1e8b5ecffe551d4.webp:2400:1855","",null,{crop:[.062,.177,.248,.64],maxH:720}),I("b59d93741dfd4713b1e8b5ecffe551d4.webp:2400:1855","",null,{crop:[.376,.177,.248,.64],maxH:720}),I("b59d93741dfd4713b1e8b5ecffe551d4.webp:2400:1855","",null,{crop:[.693,.177,.248,.64],maxH:720})]]},
       {screen:{f:"61bc97084a454f00b4a51db6134cc032.jpg", mt:80}}
     ]
   },
@@ -761,8 +876,8 @@ const PROJECTS = [
   },
   {
     slug:"marlenka", cover:"7bddd800ad2c4dc5a2a07de4f22685a2.jpg", name:"Marlenka", type:"Marketing & print design",
-    header:{bg:"rgba(252,243,216,.96)", ink:"#2a1a0c", hi:"#a41515", ul:"#a41515", duo:["#2a1a0c","#a41515","#fff3dc"]},
-    theme:{bg:"#fcf3d8", ink:"#2a1a0c", muted:"#6e5536", accent:"#a41515", line:"rgba(164,21,21,.3)", card:"#f3e3bf", head:"Fraunces", body:"Fraunces", heroBg:"#f3e3bf"},
+    header:{bg:"rgba(252,243,216,.96)", ink:"#4a140f", hi:"#a41515", ul:"#a41515", duo:["#4a140f","#a41515","#fff3dc"]},
+    theme:{bg:"#fcf3d8", ink:"#2a1a0c", muted:"#6e5536", accent:"#a41515", line:"rgba(164,21,21,.3)", card:"#f3e3bf", head:"Fraunces", body:"Fraunces", heroBg:"#f3e3bf", onbg:"#4a140f"},
     tile:["c665c94e46ab4e45a12245f5ddee7a03.webp","a6c33cbe9c604c2786ec35b738c882c4.webp"],
     hero:null,
     emails:{
@@ -773,10 +888,10 @@ const PROJECTS = [
     text:"I worked within the brand’s established visual identity to create a range of marketing and print materials. This included email designs, order package inserts, and business cards, all developed to maintain consistency while adapting the brand across different formats and use cases. The work focused on clear communication, visual cohesion, and translating existing brand assets into effective, customer-facing designs.",
     sections:[
       {label:"Order insert", rows:[[I("56557bcccda84d8fa85d211189202c3b.jpg:986:704","Front"),I("75e9b54239164a248addfefbf19f1fc2.jpg:998:712","Back")]]},
-      {label:"In-use photos", rows:[[I("7bddd800ad2c4dc5a2a07de4f22685a2.jpg:828:802"),I("76efed98c5ff4fecb9ea59b6b327f049.jpg:828:802")]]},
+      {label:"In-use photos", mstack:true, rows:[[I("7bddd800ad2c4dc5a2a07de4f22685a2.jpg:828:802"),I("76efed98c5ff4fecb9ea59b6b327f049.jpg:828:802")]]},
       {label:"Business cards", rows:[[I("afaf3e213a754742b90ef3b93db78a92.jpg:1000:568"),I("51661fda46524fb796a62fba49854830.jpg:1000:571")]]},
       {label:"Email designs", rows:[[I("6cdac27843da42f9a7379bd9f14c4cc4.webp:1000:714","Cheers to the New Year",null,{link:"marlenka/email/new-year"}),I("32901fd942f64173bd70dce99598e591.webp:1000:714","Santa’s Coming!",null,{link:"marlenka/email/christmas"})]]},
-      {label:"Email artwork", rows:[[I("b9c25017a58443f397a2a724675874de.jpg:1000:661"),I("722c1952319e447a9b05a5e341daa99e.jpg:1000:676")],[I("a4e9ae179308435993fa4dc6a364285c.gif:1000:1000"),I("390ec101246b4ed1bb813e6d8d71d0ca.jpg:680:872"),I("c3acb9670ceb4a80952f3108d14c896d.jpg:1000:1000"),I("976ae510c2ac46fcaff27761a55353e6.jpg:856:854")],[I("0660a360d82145718174b7996a6b2bf2.jpg:1000:648"),I("6bb084f5b1ab4b8e9d94914d40f30a24.jpg:1000:472")]]}
+      {label:"Email artwork", m2x2:true, rows:[[I("b9c25017a58443f397a2a724675874de.jpg:1000:661"),I("722c1952319e447a9b05a5e341daa99e.jpg:1000:676")],[I("a4e9ae179308435993fa4dc6a364285c.gif:1000:1000"),I("390ec101246b4ed1bb813e6d8d71d0ca.jpg:680:872"),I("c3acb9670ceb4a80952f3108d14c896d.jpg:1000:1000"),I("976ae510c2ac46fcaff27761a55353e6.jpg:856:854")],[I("0660a360d82145718174b7996a6b2bf2.jpg:1000:648"),I("6bb084f5b1ab4b8e9d94914d40f30a24.jpg:1000:472")]]}
     ]
   },
   {
@@ -796,7 +911,7 @@ const PROJECTS = [
   },
   {
     slug:"lia-lucine", cover:"1b86c3de413644a388bbc2943c923511.jpg", name:"Lia Lucine", type:"Logo design & mockups",
-    header:{bg:"rgba(255,255,255,.95)", ink:"#111111", hi:"#111111", ul:"#111111", duo:["#111111","#13406f","#ffffff"]},
+    header:{bg:"rgba(255,255,255,.95)", ink:"#111111", hi:"#111111", ul:"#111111", duo:["#111111","#111111","#ffffff"]},   /* black outline, white letters */
     theme:{bg:"#ffffff", ink:"#111111", muted:"#555555", accent:"#111111", line:"rgba(0,0,0,.25)", card:"#f2f2f2", head:"Cormorant Garamond", headw:"600", body:"Fraunces", heroBg:"#ffffff"},
     tile:["2e8d0b7f8d664c68ad018cbb875d9ea4.webp","5b2bb5b1df4f453998caa866a6778b1e.webp"],
     hero:{img:"2e8d0b7f8d664c68ad018cbb875d9ea4.webp"},
@@ -804,15 +919,15 @@ const PROJECTS = [
     text:"The logo for Lia Lucine, a handmade leather belt brand, was inspired by the stitching. I turned the letters into a smooth, seamless design that feels like part of the belt, and chose a typeface to complement the logo and the brand’s handcrafted elegance. The result is a simple, elegant mark that reflects the care behind each piece. Mockups were also made to show how the logo comes to life in real-world settings and across the brand.",
     sections:[
       {screen:{f:"1b86c3de413644a388bbc2943c923511.jpg"}},
-      {label:"On the belts", gap:22, rows:[[I("4f94a4e2994e42ffb368829498b1688f.jpg:1400:1812","",null,{maxH:480}),I("49865867fe564a9b9fe0f1d0bf2a6b88.jpg:1400:1812","",null,{maxH:480})],[I("53050708df7246bfa8f4819c7ecc36f3.jpg:1600:2143","",null,{crop:[0,0.0168,1,0.9663],maxH:480}),I("0fb144e86ff7459fb6bae4220d3583e7.jpg:1600:2143","",null,{crop:[0,0.0168,1,0.9663],maxH:480})]]},
+      {label:"On the belts", gap:32, rows:[[I("4f94a4e2994e42ffb368829498b1688f.jpg:1400:1812","",null,{maxH:600}),I("49865867fe564a9b9fe0f1d0bf2a6b88.jpg:1400:1812","",null,{maxH:600})],[I("53050708df7246bfa8f4819c7ecc36f3.jpg:1600:2143","",null,{crop:[0,0.0168,1,0.9663],maxH:600}),I("0fb144e86ff7459fb6bae4220d3583e7.jpg:1600:2143","",null,{crop:[0,0.0168,1,0.9663],maxH:600})]]},
       {label:"In print", cols:"1.25fr 1.68fr", h:"clamp(260px,30vw,420px)", trio:[{f:"68978e94566b486a9953ff68b893e41c.jpg", W:1152, H:896, crop:[.12,.1,.76,.78]},{f:"14ccef29f58245ecb66f47a4757404d1.jpg", W:1344, H:768, crop:[.04,.01,.92,.96]}]},
       {screen:{f:"1afd8a3ec580470fa2ea1ef4f7695e23.jpg", mt:80}}
     ]
   },
   {
     slug:"home-detroit", cover:"69d7d2a349ab427e9513abce7fe912e3.jpg", name:"Home Detroit & Detroit Progress", type:"Merchandise design (internship)",
-    header:{bg:"rgba(255,255,255,.95)", ink:"#111111", hi:"#13406f", ul:"#13406f", duo:["#111111","#111111","#ffffff"]},
-    theme:{bg:"#ffffff", ink:"#111111", muted:"#666", accent:"#13406f", line:"rgba(0,0,0,.18)", card:"#f2f4f7", head:"Lato", headw:"900", body:"Lato", heroBg:"#ffffff"},
+    header:{bg:"rgba(255,255,255,.95)", ink:"#152b47", hi:"#13406f", ul:"#13406f", duo:["#152b47","#13406f","#ffffff"]},   /* the name's painted version: white letters, outlined in the menu blue */
+    theme:{bg:"#ffffff", ink:"#111111", muted:"#666", accent:"#13406f", line:"rgba(0,0,0,.18)", card:"#f2f4f7", head:"Lato", headw:"900", body:"Lato", heroBg:"#ffffff", onbg:"#152b47"},
     tile:["7c649ef7b94942c1810f5e64ecfcc257.png","e53ef204f29f4d7d9fb9d59011c849c5.png"],
     hero:null,
     facts:[["Clients","Home Detroit and Detroit Progress"],["Role","Merchandise design intern"],["Deliverables","50 concepts each, 9 final designs"]],
@@ -907,18 +1022,20 @@ function hydrate(root=document){
   });
 }
 
-function rowHTML(row, setName, keep){
+function rowHTML(row, setName, keep, mstack, m2){
   // cap each row's height (~620px) so tall pieces never fill more than a screen
   const sum = row.reduce((a,it)=>a + it.w/it.h*(it.sc||1), 0);
   const maxH = Math.min(...row.map(it => it.maxH || 620));
   const cap = Math.round(maxH*sum + 16*(row.length-1));
+  // four across is fine on a desktop but slivers on a phone, so m2x2 breaks those rows into a 2 x 2 block
+  if (m2 && row.length >= 4) keep = 2;
   // phones: a row of tall/square pictures (together no wider than ~2.4 squares) stays side by side instead of
   // stacking into a very long scroll; wide pictures still stack full width
   if (!keep && row.length >= 2 && row.length <= 3 && sum <= 2.4 && row.every(it => !it.video)) keep = 1;
   // otherwise, if there are 2+ tall pictures, they share a line on phones and wide ones get their own line
   const tall = it => !it.video && it.w/it.h*(it.sc||1) < 1.1;
   const mix = !keep && row.filter(tall).length >= 2;
-  return `<div class="row${keep === 2 ? " keep2" : keep ? " keep" : ""}${mix ? " mix" : ""}" style="max-width:${cap}px;margin-left:auto;margin-right:auto">${row.map(it=>{
+  return `<div class="row${keep === 2 ? " keep2" : keep ? " keep" : ""}${mix ? " mix" : ""}${mstack ? " mstack" : ""}" style="max-width:${cap}px;margin-left:auto;margin-right:auto">${row.map(it=>{
     const ar = it.w/it.h * (it.sc||1);
     const style = `flex:${ar} 1 0;aspect-ratio:${ar};--f:${ar};--ar:${ar}`;
     if (it.video){
@@ -1034,10 +1151,36 @@ function setDuo(cols){
   document.body.classList.add("duo");
 }
 const CAN_HOVER = matchMedia("(hover:hover) and (min-width:721px)");
+// Safari fires scroll and resize by itself as a page opens — the address bar settling, the jump to the top — so
+// "the page scrolled" is not the same as "someone swiped". Touch and wheel only happen when a person does something,
+// so the opening animations wait on these rather than on scroll.
+let userMoved = false; const USER_MOVE = [];
+function whenUserMoves(fn){ userMoved ? fn() : USER_MOVE.push(fn); }
+["touchstart","touchmove","wheel"].forEach(ev => addEventListener(ev, () => {
+  if (userMoved) return; userMoved = true; USER_MOVE.splice(0).forEach(f => f());
+}, {passive:true}));
 let ppRAF = 0;
 (() => {
-  const io = new IntersectionObserver(es => es.forEach(e => { const v = !CAN_HOVER.matches && e.intersectionRatio >= .6; e.target.classList.toggle("lit", v); if (e.target._lit) e.target._lit(v); }), {threshold:[0,.6,1]});
-  document.querySelectorAll(".tile").forEach(t => io.observe(t));
+  // Home tiles: a tile is tall, so "is it on screen" lights it up while it is still half off the bottom. Go by
+  // the tile's own middle instead — it paints as it passes the middle of the screen, the way the About button does.
+  (() => {
+    const tiles = [...document.querySelectorAll(".tile")]; if (!tiles.length) return;
+    let ready = false;
+    const check = () => { if (!ready) return; const mid = innerHeight / 2;
+      tiles.forEach(t => { const r = t.getBoundingClientRect();
+        // how far the tile's own middle is from the middle of the screen (+ = still below it)
+        const d = r.top + r.height / 2 - mid;
+        const inAt = Math.max(110, r.height * .5);    // coming up from below: starts as it reaches the middle
+        const outAt = Math.max(240, r.height);        // going past: keeps its paint until it is well clear of it
+        const near = !CAN_HOVER.matches && d < inAt && d > -outAt;
+        if (near === t._near){ if (near && t._nudge) t._nudge(); return; }   // still parked in the middle: see if it wants another go
+        t._near = near; t.classList.toggle("lit", near); if (t._lit) t._lit(near); }); };
+    const ping = () => check();   // straight through, no animation frame in between — three tiles is cheap to measure
+    addEventListener("scroll", ping, {passive:true}); addEventListener("resize", ping);
+    addEventListener("touchmove", ping, {passive:true});
+    const open = () => { if (ready) return; ready = true; check(); };
+    whenUserMoves(() => setTimeout(open, 250));  // only a touch or a scroll starts it, just behind the name
+  })();
   // phones: anything with a hover effect plays it while it sits in the middle band of the screen
   const mid = new IntersectionObserver(es => es.forEach(e => {
     const on = !CAN_HOVER.matches && e.isIntersecting; e.target.classList.toggle("lit", on);
@@ -1046,10 +1189,34 @@ let ppRAF = 0;
   // the previous/next buttons sit at the very bottom, so they light up once fully on screen instead
   const full = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle("lit", !CAN_HOVER.matches && e.intersectionRatio > .9)), {threshold:[0,.9,1]});
   window.watchLit = root => {
-    (root || document).querySelectorAll(".gd-card,.enough,.portrait-wrap").forEach(el => { if (!el._watched){ el._watched = 1; mid.observe(el); } });
+    (root || document).querySelectorAll(".gd-card,.enough").forEach(el => { if (!el._watched){ el._watched = 1; mid.observe(el); } });   /* the About photo is deliberately not here: on a phone it does not animate */
     (root || document).querySelectorAll(".pager .pn").forEach(el => { if (!el._watched){ el._watched = 1; full.observe(el); } });
   };
   watchLit();
+})();
+// The "Enough talk" button holds its swap for three seconds and then settles back, so it reads as something that
+// happens as you pass rather than a state it gets stuck in. Nudge the page again while it is still in the middle of
+// the screen and it plays once more.
+(() => {
+  const en = document.querySelector(".enough"); if (!en) return;
+  let offT = 0, spent = false, spentY = 0, wasLit = false;
+  en._lit = v => { clearTimeout(offT);
+    if (!v){ spent = false;                              // left the middle: ready to play again next time past
+      if (!wasLit) return;
+      // it was still reading "let's see the work" when you scrolled off it, so that holds for a moment longer
+      // wherever it has got to on the screen, rather than snapping back the instant it leaves the middle
+      en.classList.add("lit");
+      offT = setTimeout(() => { en.classList.remove("lit"); wasLit = false; }, 1500);
+      return; }
+    if (spent) return void en.classList.remove("lit");
+    wasLit = true;
+    offT = setTimeout(() => { spent = true; spentY = scrollY; en.classList.remove("lit"); wasLit = false; }, 3000); };
+  addEventListener("scroll", () => {
+    if (!spent || CAN_HOVER.matches || Math.abs(scrollY - spentY) < 6) return;
+    const r = en.getBoundingClientRect();
+    if (r.bottom < innerHeight * .38 || r.top > innerHeight * .62) return;   // only while it is still centred
+    spent = false; en.classList.add("lit"); en._lit(true);
+  }, {passive:true});
 })();
 // DJ Hayko cut-out ("Option F"): the real gradient slides up and down with the scroll and gently tilts back and
 // forth (about 22 degrees) around the logo's centre. Pure function of scroll: moves only while you scroll.
@@ -1100,7 +1267,8 @@ function renderProject(p){
   // logos are see-through, so in the viewer they sit on the same colour they have on the page
   if (H.img && !H.photo) LB_BG[H.img] = H.clear ? "var(--p-bgimg) center/cover" : H.bgImg ? `url('${src(H.bgImg,1800)}') center/cover` : (t.heroBg || H.bg || "#fff");
   const screen = c => {
-    const st = `--s-bg:${c.bg||"transparent"};${c.vh?`--s-vh:${c.vh};`:""}${c.w?`--s-w:${c.w};`:""}${c.h?`--s-h:${c.h};`:""}`;
+    const st = `--s-bg:${c.bg||"transparent"};${c.vh?`--s-vh:${c.vh};`:""}${c.w?`--s-w:${c.w};`:""}${c.h?`--s-h:${c.h};`:""}`
+      + `${c.mw?`--s-mw:${c.mw};`:""}${c.mzoom?`--s-mzoom:${c.mzoom};`:""}${c.mzoomy?`--s-mzoomy:${c.mzoomy};`:""}`;   // mw / mzoom only do anything on a phone
     const pos = c.pos ? ` style="object-position:${c.pos}"` : "";
     const inner = c.crop ? `<span class="cell">${cropBox(c.f, c.crop, c.W, c.H, 2400)}</span>` : c.mode==="fill"
       ? `<img class="blur" data-src="${c.f}" data-w="600" alt="" aria-hidden="true"><img class="main" data-src="${c.f}" data-w="2000" alt="">`
@@ -1113,14 +1281,14 @@ function renderProject(p){
     const bx = (it, cls) => { const [x,y,cw,ch] = it.crop;
       return `<span class="cbx ${cls} zoom" data-set="${p.slug}" data-file="${it.f}" style="--bw:${Math.round(it.W*cw)};--bh:${Math.round(it.H*ch)}"><img data-src="${it.f}" data-w="1800" alt="" style="width:${100/cw}%;height:${100/ch}%;left:${-x/cw*100}%;top:${-y/ch*100}%"></span>`; };
     const cmp = s.compare ? `<div class="compare" style="${s.compare.cols ? `grid-template-columns:${s.compare.cols}` : ""}"><div class="side">${bx(s.compare.top[0],"old")}</div>${bx(s.compare.bottom,"mid")}<div class="side">${bx(s.compare.top[1],"old")}</div></div>` : "";
-    const rws = (s.rows||[]).map(r=>rowHTML(r,p.slug,s.keep)).join("");
+    const rws = (s.rows||[]).map(r=>rowHTML(r,p.slug,s.keep,s.mstack,s.m2x2)).join("");
     const body = label + trio + cmp + (s.screen ? screen(s.screen) : "") + (s.wide ? `<div class="wide-rows" style="--gap:${s.gap||16}px">${rws}</div>` : s.gap && !s.band ? `<div style="--gap:${s.gap}px">${rws}</div>` : rws);
     if (!s.band) return body;
     const st = `background-color:${s.band.bg||"transparent"};${s.band.img ? `background-image:url('${src(s.band.img,1800)}');` : ""}--p-ink:${s.band.ink};--p-accent:${s.band.accent};--p-line:${s.band.line};color:${s.band.ink};${s.gap ? `--gap:${s.gap}px;` : ""}${s.band.pad ? `padding-bottom:${s.band.pad}px;` : ""}`;
     const fold = s.band.fold ? ` data-fold="${s.band.fold.join(",")}"` : "";
     return `<div class="band${s.cont ? " cont" : ""}" style="${st}"${fold}>${body}</div>`;
   };
-  const top = `<div class="proj-top"><a class="back" href="#graphic-design"><i class="ar l">←</i> All graphic design</a><a class="back nextp" href="#${next.slug}">Next: ${next.name} <i class="ar r">→</i></a></div>`;
+  const top = `<div class="proj-top"><a class="back" href="#graphic-design"><i class="ar l">←</i> All<span class="longw"> graphic design</span></a><a class="back nextp" href="#${next.slug}">Next<span class="longw">: ${next.name}</span> <i class="ar r">→</i></a></div>`;
   const card = (q, dir) => `<a class="pp ${dir}" href="#${q.slug}"><small>${dir==="prev" ? "<i>←</i> Previous" : "Next <i>→</i>"}</small><b>${q.name}</b></a>`;
   $("#project").innerHTML = `
     ${p.hero ? `<div class="proj-hero" style="${heroBg}">${top}${heroImg}<span class="cue" aria-hidden="true"></span></div>` : top}
@@ -1156,7 +1324,7 @@ function cropBox(f, c, W, H, w){
   const [x,y,cw,ch] = c || [0,0,1,1];
   return `<span class="cb" style="--ar:${(W*cw)/(H*ch)}"><img data-src="${f}" data-w="${w||1800}" alt="" style="width:${100/cw}%;height:${100/ch}%;left:${-x/cw*100}%;top:${-y/ch*100}%"></span>`;
 }
-const cell = (it, set) => `<span class="cell zoom" data-set="${set}" data-file="${it.f}"${it.sc ? ` style="--sc:${it.sc}"` : ""}>${cropBox(it.f, it.crop, it.W, it.H)}</span>`;
+const cell = (it, set) => `<span class="cell zoom" data-set="${set}" data-file="${it.f}"${it.sc || it.msc ? ` style="${it.sc ? `--sc:${it.sc};` : ""}${it.msc ? `--sc-m:${it.msc};` : ""}"` : ""}>${cropBox(it.f, it.crop, it.W, it.H)}</span>`;
 const pn = (q, dir) => `<a class="pn ${dir}" href="#${q.slug}">${dir==="prev" ? '<span class="arr">←</span>' : ""}
     <span><small>${dir==="prev" ? "Previous project" : "Next project"}</small><b>${q.name}</b><em>${q.type}</em></span>${dir==="next" ? '<span class="arr">→</span>' : ""}</a>`;
 function gdCard(p){
@@ -1269,7 +1437,13 @@ function stepLB(d){ lbIdx = (lbIdx + d + lbSet.length) % lbSet.length; showLB();
 document.addEventListener("click", e=>{
   const pb = e.target.closest(".vid .play");
   if (pb){ const fig = pb.closest(".vid"), v = fig.querySelector("video"); fig.classList.add("playing"); v.controls = true; v.play().catch(()=>{}); return; }
-  if (e.target.closest(".enough")){ e.preventDefault(); standoff(); return; }
+  const en = e.target.closest(".enough");
+  if (en){ e.preventDefault();
+    // On a phone the button only reads "let's see the work" once it has scrolled into the middle of the screen.
+    // Tapped before that, it does the swap first and holds it for a beat, so you see what you pressed, then glides up.
+    if (!CAN_HOVER.matches && !en.classList.contains("lit")){ en.classList.add("lit"); setTimeout(standoff, 520); }
+    else standoff();
+    return; }
   // clicking a link to the section you're already on (e.g. About twice) still scrolls there
   const link = e.target.closest('a[href^="#"]');
   if (link && link.getAttribute("href") === (location.hash || "#home")){ e.preventDefault(); route(); return; }
@@ -1292,8 +1466,17 @@ document.addEventListener("keydown", e=>{
   else if (e.key==="Enter" && e.target.matches("figure[data-set]")) openLB(e.target);
 });
 
-/* "Let's see the work": glide back up to the three tiles */
-function standoff(){ window.scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"}); }
+/* "Enough talk, let's see the work": glide back up to the three tiles. The glide is the whole point of the button,
+   so it scrolls rather than jumping even with "reduce motion" on — the same call the rest of the site's motion makes.
+   (It also used to ask for behavior:"instant", which older Safari rejects outright, so the button did nothing there.) */
+function standoff(){
+  const start = scrollY;
+  try { window.scrollTo({top:0, behavior:"smooth"}); }
+  catch(e){ return window.scrollTo(0, 0); }
+  // safety net: a browser that quietly ignores smooth scrolling would leave the button doing nothing at all,
+  // so if the page has not budged at all after a moment, just take it to the top.
+  setTimeout(() => { if (start > 0 && scrollY === start) window.scrollTo(0, 0); }, 1200);
+}
 
 
 // Each section has its own accent colour. Home / About / Contact start in black; Illustration is graphite grey;
@@ -1318,13 +1501,14 @@ function setAccent(key){
 }
 /* ============ ROUTER ============ */
 let curView = null;
+function closeNav(){ $("#nav").classList.remove("open"); $(".menu-btn").setAttribute("aria-expanded","false"); }
 function show(view, navKey){
   if (view !== "project") clearTheme();
   document.body.dataset.view = view;
   setAccent(SECTION_ACCENT[navKey] || SECTION_ACCENT[view] || "green");
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("show", s.id==="v-"+view));
   document.querySelectorAll("nav a[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===navKey));
-  $("#nav").classList.remove("open"); $(".menu-btn").setAttribute("aria-expanded","false");
+  closeNav();
   curView = view;
 }
 function jumpTo(el){ // instant, no scrolling animation
@@ -1344,6 +1528,7 @@ function route(){
   }
 
   if (h==="contact"){            // stay on the current page, jump to the contact footer
+    closeNav();
     if (!prev) show("home","home");
     document.querySelectorAll('nav a[data-nav]').forEach(a=>a.classList.remove("active"));
     window.scrollTo({top:document.documentElement.scrollHeight, behavior: prev==="home" ? "smooth" : "instant"});
@@ -1364,7 +1549,10 @@ function route(){
 
   // "Enough talk" / logo while already on the home page: glide back up to the three tiles
   const glide = (curView==="home" && prev==="home");
-  window.scrollTo({top:0, behavior: glide ? "smooth" : "instant"});
+  // some older Safari versions throw on behavior:"instant" — if that happens the page would stay put (e.g. at the
+  // bottom, where the next/previous pager sits), so fall back to a plain jump to the top.
+  try { window.scrollTo({top:0, behavior: glide ? "smooth" : "instant"}); }
+  catch(e){ window.scrollTo(0, 0); }
   document.title = (proj ? proj.name+" — " : (titles[h]||"")) + "Alex Koceyan";
 }
 
@@ -1375,7 +1563,16 @@ $(".menu-btn").addEventListener("click", ()=>{
   const open = $("#nav").classList.toggle("open");
   $(".menu-btn").setAttribute("aria-expanded", open);
 });
-let rT; addEventListener("resize", ()=>{ clearTimeout(rT); rT=setTimeout(()=>{ if($("#v-illustration").classList.contains("show")) renderIll(); },200); });
+$("#nav").addEventListener("click", e => { if (e.target.closest("a")) closeNav(); });
+// The illustration grid works out its own row breaks, so it has to be rebuilt when the window width changes.
+// Height changes must NOT rebuild it: scrolling on a phone slides the address bar away, which fires resize over and
+// over, and every one of those was tearing the gallery down and loading every picture again mid-scroll.
+let rT, lastW = innerWidth;
+addEventListener("resize", ()=>{
+  if (innerWidth === lastW) return;
+  lastW = innerWidth;
+  clearTimeout(rT); rT=setTimeout(()=>{ if($("#v-illustration").classList.contains("show")) renderIll(); },200);
+});
 
 // marquee words (duplicated so the loop is seamless)
 const WORDS = [["Illustration","#illustration"],["Graphic design","#graphic-design"],["Murals","#murals"],["Made in Detroit",null]];
@@ -1470,7 +1667,7 @@ function markerZig(x0, dir, end, top, bot, lean, step, jit){
   let tR = 600, tL = 600, sR = 4, sL = 4;
   // Same cartoon-painter move as the home options: a wide flat brush puts a slanted slab right on the cursor,
   // then more slanted bands follow outward to both ends of the name, in held chunks. Always solid, nothing filled in later.
-  function grow(x, y){
+  function grow(x, y, slow){
     if (y === undefined) y = 61;
     const W = 150, gap = 112, x0 = -30, x1 = 650, y0 = -40, y1 = 165, th = (Math.random() < .5 ? 1 : -1) * .3, c = Math.cos(th), sn = Math.sin(th);
     let p0 = 1e9, p1 = -1e9, t0 = 1e9, t1 = -1e9;
@@ -1484,13 +1681,25 @@ function markerZig(x0, dir, end, top, bot, lean, step, jit){
     const setP = (ps, d) => ps.forEach(p => { p.setAttribute("d", d); p.setAttribute("stroke-width", W); p.setAttribute("stroke-linecap", "butt"); p.setAttribute("stroke-linejoin", "miter"); p.setAttribute("stroke-miterlimit", "10"); });
     setP(R, dR); setP(L, dL);
     run([...R, ...L], 0, 1.05, "linear"); void logo.offsetWidth;
-    const chunk = 125, speed = 5.6;
+    const chunk = 125, speed = 5.6 / (slow || 1);
     sR = Math.max(1, Math.round(lR / chunk)); sL = Math.max(1, Math.round(lL / chunk)); tR = lR / speed; tL = lL / speed;
     run(R, tR, 0, `steps(${sR}, start)`); run(L, tL, 0, `steps(${sL}, start)`);
   }
-  function erase(){ run(R, tR*.45, 1.05, `steps(${Math.ceil(sR/2)}, end)`); run(L, tL*.45, 1.05, `steps(${Math.ceil(sL/2)}, end)`); }
-  // phones (no hover): the name's paint swipe plays once on its own shortly after the page opens
-  if (!CAN_HOVER.matches) setTimeout(() => { grow(310); setTimeout(erase, 1600); }, 900);
+  function erase(slow){ const k = .45 * (slow || 1);
+    run(R, tR*k, 1.05, `steps(${Math.ceil(sR/2)}, end)`); run(L, tL*k, 1.05, `steps(${Math.ceil(sL/2)}, end)`); }
+  // Phones (no hover): the name paints itself in shortly after the page opens, sits there a good while, then
+  // wipes off just as slowly. Scroll again and it comes back, so it stays something you notice.
+  if (!CAN_HOVER.matches){
+    let busy = true, lastY = scrollY;   // starts blocked: nothing happens during the opening buffer
+    const play = () => { if (busy) return; busy = true; grow(310, undefined, 2.4);
+      setTimeout(() => { erase(1.7); setTimeout(() => busy = false, 500); }, 9000); };   // how long the name stays painted before it wipes off
+    let opened = false;
+    const open = () => { if (opened) return; opened = true; busy = false; lastY = scrollY; play(); };
+    whenUserMoves(open);   // nothing on load: the page stays plain until a finger or a scroll wheel says otherwise
+    // the moment the page moves at all it starts painting — 8px is less than a finger twitch, it is only there so a
+    // stray one-pixel bounce does not set it off. While it is already playing, busy holds further scrolls off.
+    addEventListener("scroll", () => { if (Math.abs(scrollY - lastY) < 8) return; lastY = scrollY; play(); }, {passive:true});
+  }
   logo.addEventListener("mouseenter", e => { if (CAN_HOVER.matches) grow(toX(e), toY(e)); });
   logo.addEventListener("mouseleave", () => { if (CAN_HOVER.matches) erase(); });
   logo.addEventListener("focus", () => grow(0));
@@ -1537,6 +1746,13 @@ document.querySelectorAll("nav a:not(.cta)").forEach(a=>{
 // the current page's underline is drawn full from the start
 document.querySelectorAll("nav a:not(.cta)").forEach(a=> ulPaths(a));
 if (document.fonts) document.fonts.ready.then(()=> document.querySelectorAll("nav a:not(.cta)").forEach(a=> ulPaths(a)));
+// iOS Safari paints the footer's background at its height BEFORE the display font loads, then the big heading
+// reflows taller and iOS never repaints the newly-grown part — so the lower footer shows the page colour through.
+// Once the fonts are in (and the heading has settled), nudge the footer to repaint.
+if (document.fonts) document.fonts.ready.then(()=>{
+  const f = document.querySelector("footer"); if (!f) return;
+  f.style.display = "none"; void f.offsetHeight; f.style.display = "";   // force a clean repaint after the reflow
+});
 document.querySelectorAll(".js-logo").forEach(im=>im.setAttribute("href", src(im.dataset.file, 1240)));
 // Home tiles: same paint swipe as the name. It starts where the cursor comes in and sweeps out both ways,
 // painting the colour version over the plain one. Phones: it plays from the middle as each tile scrolls into view.
@@ -1547,7 +1763,7 @@ document.querySelectorAll(".tile").forEach(tile => {
   const run = (paths, ms, off, ease) => paths.forEach(p => { p.style.transition = `stroke-dashoffset ${ms}ms ${ease}`; p.style.strokeDashoffset = off; });
   let tR = 600, tL = 600, on = false;
   // come in from the left/right edge: the paint sweeps sideways from that spot; from the top/bottom: it sweeps up/down
-  function growAt(px, py){ [...R, ...L].forEach(p => p.removeAttribute("transform")); grow(px, py); }
+  function growAt(px, py, slow){ [...R, ...L].forEach(p => p.removeAttribute("transform")); grow(px, py, slow); }
   let offT = 0;
   // Cartoon painter (the Pink Panther clip): a very wide flat brush lays down big slanted bands side by side,
   // snapping on in held chunks like a cartoon drawn on "twos".
@@ -1555,7 +1771,7 @@ document.querySelectorAll(".tile").forEach(tile => {
   // that spot along the band), then more bands follow on outward from it until the square is full.
   // Every band overlaps its neighbour, so the paint is one solid shape the whole time: no empty spots, no fill-in later.
   let tRs = 4, tLs = 4;
-  function grow(x, y){
+  function grow(x, y, slow){
     on = true; clearTimeout(offT); tile.classList.add("p");
     const vert = Math.min(y, 866 - y) < Math.min(x, 866 - x), cu = vert ? y : x, cv = vert ? x : y;   // cu: across the bands, cv: along them
     const W = 440, gap = 330, lo = -170, hi = 1036, th = (Math.random() < .5 ? 1 : -1) * .3, c = Math.cos(th), sn = Math.sin(th);
@@ -1572,8 +1788,13 @@ document.querySelectorAll(".tile").forEach(tile => {
     const setP = (ps, d) => ps.forEach(p => { p.setAttribute("d", d); p.setAttribute("stroke-width", W); p.setAttribute("stroke-linecap", "butt"); p.setAttribute("stroke-linejoin", "miter"); p.setAttribute("stroke-miterlimit", "10"); });
     setP(R, dR); setP(L, dL);
     run([...R, ...L], 0, 1.05, "linear"); void svg.getBoundingClientRect();
-    const chunk = 470, speed = 12.5;                                    // paint lands in ~470-unit slabs, at the same speed on both sides
+    const chunk = 470, speed = 12.5 / (slow || 1);                      // paint lands in ~470-unit slabs, at the same speed on both sides
     tRs = Math.max(1, Math.round(lR / chunk)); tLs = Math.max(1, Math.round(lL / chunk)); tR = lR / speed; tL = lL / speed;
+    // Phones (slow is only passed there): the sweep is set off by scrolling rather than by a cursor, so it should
+    // take the same time wherever it starts from. At a constant rate an edge start has one long sweep to make
+    // instead of two short ones, which ran noticeably slower. Scaling both halves so the longer one always lands
+    // at the same moment fixes that — within a play the two halves still travel together at one rate.
+    if (slow){ const target = 930, longest = Math.max(tR, tL) || 1, k = target / longest; tR *= k; tL *= k; }
     run(R, tR, 0, `steps(${tRs}, start)`); run(L, tL, 0, `steps(${tLs}, start)`);
   }
   function erase(){ if (!on) return; on = false; F.forEach(r => { r.style.transition = "opacity 0ms"; r.style.opacity = 0; }); run(R, tR*.45, 1.05, `steps(${Math.ceil(tRs/2)}, end)`); run(L, tL*.45, 1.05, `steps(${Math.ceil(tLs/2)}, end)`);
@@ -1590,7 +1811,28 @@ document.querySelectorAll(".tile").forEach(tile => {
   tile.addEventListener("mousemove", e => { if (pend) last = toPt(e); });
   tile.addEventListener("mouseleave", () => { if (!CAN_HOVER.matches) return; cancelAnimationFrame(pend); pend = 0; erase(); });
   tile.addEventListener("focus", () => growAt(433, 433)); tile.addEventListener("blur", erase);
-  tile._lit = v => v ? (on || growAt(433, 433)) : erase();
+  // Scrolled into view: paints 2.5x slower than on hover, so you can watch it happen. Once it starts it holds for at
+  // least a second and a half, so a quick scroll past cannot wipe it off half painted — and at most four and a half,
+  // so the top tile, which sits in the middle of the screen when the page is at the top, goes back to plain on its
+  // own instead of staying painted for good. After that it waits for the next bit of scrolling to play again.
+  let litAt = 0, holdT = 0, maxT = 0, spent = false, spentY = 0;
+  // Where the paint starts decides the whole sweep: a spot nearer a side edge sends the bands across, a spot nearer
+  // the top or bottom sends them down, and everything grows outward from there. On a phone there is no cursor to
+  // take that from, so pick a different one each time rather than always running the same stroke from the middle.
+  // (The brush angle is already thrown either way by the paint itself. The speed stays put.)
+  const STARTS = [[433,433],[433,433],[80,433],[786,433],[433,80],[433,786],[200,260],[660,600],[250,640],[640,220]];
+  let lastStart = -1;
+  const pickStart = () => { let k; do { k = Math.floor(Math.random() * STARTS.length); } while (k === lastStart); lastStart = k; return STARTS[k]; };
+  const paint = () => { clearTimeout(maxT); spent = false; litAt = performance.now();
+    const st = pickStart(); growAt(st[0], st[1], 2.5);
+    maxT = setTimeout(() => { spent = true; spentY = scrollY; erase(); }, 4500); };
+  tile._lit = v => { clearTimeout(holdT);
+    if (v){ if (!on && !spent) paint(); return; }
+    clearTimeout(maxT); spent = false;                       // it left the middle: ready to play again next time round
+    const wait = 1500 - (performance.now() - litAt);
+    if (wait > 0){ holdT = setTimeout(erase, wait); return; }
+    erase(); };
+  tile._nudge = () => { if (spent && Math.abs(scrollY - spentY) > 5) paint(); };   // a nudge of the page is enough
 });
 
 // The white behind each tile fills exactly the inside of its drawn frame (worked out from the artwork itself:
@@ -1645,9 +1887,16 @@ renderMurals();
   const setA = (lf, a) => { lf.style.transform = "perspective(2600px) rotateY(" + a + "deg)"; };
   const restZ = i => i < cur ? i + 1 : leaves.length - i;
   function size(){
-    isSingle = innerWidth < 720; bk.classList.toggle("single", isSingle);
-    const h = Math.min(innerHeight * .86, ((innerWidth - (isSingle ? 0 : 150)) * .96 / 2) / B.ar); W = h * B.ar;
-    bk.style.setProperty("--h", h + "px"); bk.style.setProperty("--w", W + "px"); shift();
+    // Phones used to get one page at a time, which cut every two-page drawing straight down the middle. They now
+    // get the same spread a desktop does, sized to the screen. On a narrow screen the side arrows move down to the
+    // bottom corners (see the css), so the book can use nearly the full width instead of leaving room for them.
+    const narrow = innerWidth < 720, tall = innerHeight > innerWidth;
+    isSingle = false; bk.classList.toggle("single", false);
+    const pad = narrow ? 14 : 150, cap = narrow && !tall ? .80 : .86;
+    const h = Math.min(innerHeight * cap, ((innerWidth - pad) * .985 / 2) / B.ar); W = h * B.ar;
+    bk.style.setProperty("--h", h + "px"); bk.style.setProperty("--w", W + "px");
+    bk.classList.toggle("narrow", narrow); bk.classList.toggle("upright", narrow && tall);
+    shift();
   }
   function shift(){   // closed book (cover only) and the lone back cover sit in the middle of the screen
     const n = B.pages.length, x = cur === 0 ? -W / 2 : (cur === maxFlip && n % 2 === 0 ? W / 2 : 0);
@@ -1658,7 +1907,10 @@ renderMurals();
     if (isSingle) { count.textContent = (page + 1) + " / " + n; $(".bk-prev").disabled = !nav && page === 0; $(".bk-next").disabled = !nav && page === n - 1; hint.textContent = (B.note ? B.note + " · " : "") + (nav ? "Swipe or tap to turn the page · keep going for the next artwork" : "Swipe or tap to turn the page"); return; }
     const l = cur * 2, r = cur * 2 + 1, shown = [l >= 1 ? l : null, r <= n ? r : null].filter(Boolean);
     count.textContent = (cur === 0 ? "Cover" : shown.join("–")) + " / " + n;
-    $(".bk-prev").disabled = cur === 0; $(".bk-next").disabled = cur === maxFlip; hint.textContent = (B.note ? B.note + " · " : "") + (nav ? "Click or drag a page to turn it · side arrows go to the next artwork" : "Click or drag a page to turn it");
+    $(".bk-prev").disabled = cur === 0; $(".bk-next").disabled = cur === maxFlip;
+    const touch = matchMedia("(hover:none)").matches, turn = (touch ? "Tap" : "Click") + " or drag a page to turn it";
+    hint.textContent = (B.note ? B.note + " · " : "") + turn
+      + (touch ? " · pinch to zoom" : nav ? " · side arrows go to the next artwork" : "");
   }
   let nav = false, fresh = false;
   function open(id, hasNav){
