@@ -807,7 +807,9 @@ function src(file, w){
   const [id, ext] = file.split(".");
   const base = `${MEDIA}${id}~mv2.${ext}`;
   if (ext === "gif" || !w) return base;
-  return `${base}/v1/fit/w_${w},h_${w*2},q_90/32c9e4_${id}~mv2.${ext}`;
+  // enc_auto lets Wix deliver WebP to browsers that accept it (modern Safari does), so a heavy source PNG
+  // — e.g. the murals home tile — arrives as a much smaller file and no longer loads noticeably after the others.
+  return `${base}/v1/fit/w_${w},h_${w*2},q_90,enc_auto/32c9e4_${id}~mv2.${ext}`;
 }
 const VIDEO = id => `https://video.wixstatic.com/video/32c9e4_${id}/720p/mp4/file.mp4`;
 const POSTER = id => `${MEDIA}${id}f000.jpg`;
