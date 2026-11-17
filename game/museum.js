@@ -1,14 +1,15 @@
 /* ==========================================================================
    MUSEUM MODE — a retro third-person walk-through of Alex Koceyan's work.
-   Loaded by index2.html. Reads the site's own data (ILL, ILL_INFO, PROJECTS,
+   Loaded by index.html. Reads the site's own data (ILL, ILL_INFO, PROJECTS,
    MURALS, src) so anything added to the site shows up on the museum walls.
-   The 3D engine (three.js) is only downloaded when the toggle is clicked.
+   The nav switch (#game-toggle), its styles and the "Press Start 2P" font are
+   in index.html so they are there from the first paint; this file wires the
+   switch up. The 3D engine (three.js) is only downloaded when it is clicked.
    ========================================================================== */
 (() => {
   "use strict";
 
   const THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js";
-  const FONT_URL = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
   const PIXEL = '"Press Start 2P", ui-monospace, "Courier New", monospace';
 
   /* ---------------- floor plan (metres; north is -z) ---------------- */
@@ -82,41 +83,8 @@
     return null;
   }
 
-  /* ---------------- styles + nav toggle ---------------- */
+  /* ---------------- styles (the nav switch's own styles + mg-blink/mg-demo keyframes are in index.html) ---------------- */
   const css = `
-  .game-toggle{font-family:${PIXEL};font-size:10px;line-height:1;letter-spacing:.02em;text-transform:uppercase;color:#8dff9a;background:#111;border:2px solid #111;padding:9px 11px 8px;cursor:pointer;box-shadow:3px 3px 0 var(--green,#2b7a34);display:inline-flex;align-items:center;gap:9px;white-space:nowrap;transition:transform .12s,box-shadow .12s,background .12s}
-  .game-toggle .gt-sw{position:relative;width:26px;height:12px;border:2px solid #8dff9a;flex:none}
-  .game-toggle .gt-sw i{position:absolute;top:1px;left:1px;width:8px;height:6px;background:#8dff9a;animation:mg-blink 1s steps(2,jump-none) infinite}
-  @media (hover:hover){.game-toggle:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--green,#2b7a34)}.game-toggle:hover .gt-sw i{left:13px;animation:none}}
-  .game-toggle:focus-visible{outline:3px solid var(--green,#2b7a34);outline-offset:3px}
-  .game-toggle .gt-txt{display:grid;gap:4px;text-align:left;font-size:8px}
-  @media (min-width:721px){
-    nav.has-game{gap:clamp(9px,1.3vw,18px)}
-    nav.has-game a:not(.cta){font-size:clamp(12px,1.5vw,19.5px)}
-    nav.has-game a.cta{font-size:clamp(12px,1.3vw,18px);margin-left:0}
-    .game-toggle{padding:7px 9px 6px;gap:8px}
-  }
-  @media (max-width:1040px) and (min-width:721px){
-    .game-toggle .gt-txt{display:none}.game-toggle{padding:9px 8px}
-    header .logo{width:clamp(165px,22vw,280px)}   /* the bar was already too wide for small laptop windows */
-  }
-  /* Phones: there is no hover to flick the switch, so it demos itself — blinks twice in the off position, snaps
-     across, holds on for a beat, snaps back. It only runs while the menu is open, which is the only time it is on
-     screen. Pressing the button also throws it across straight away, so a tap feels like flipping a real switch. */
-  @media (max-width:720px){
-    .game-toggle{justify-content:center;margin-top:14px;padding:13px 11px 12px}
-    .game-toggle .gt-txt{display:block;font-size:11px}
-    .game-toggle .gt-txt span+span::before{content:" "}
-    .game-toggle .gt-sw i{animation:mg-demo 3.4s steps(1,end) infinite}
-    .game-toggle:active .gt-sw i,.game-toggle.pressed .gt-sw i{left:13px;opacity:1;animation:none}
-  }
-  @keyframes mg-demo{
-    0%{left:1px;opacity:1}    12%{left:1px;opacity:.25}  24%{left:1px;opacity:1}
-    36%{left:1px;opacity:.25} 48%{left:1px;opacity:1}
-    56%{left:13px;opacity:1}  94%{left:13px;opacity:1}   100%{left:1px;opacity:1}
-  }
-  @keyframes mg-blink{50%{opacity:.25}}
-
   #mg{position:fixed;inset:0;z-index:1000;background:#050505;color:#f4f1e6;font-family:${PIXEL};font-size:11px;line-height:1.7;display:none;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
   #mg:focus{outline:none}
   #mg .mg-card,#mg .mg-look .txt{touch-action:pan-y}
@@ -177,7 +145,7 @@
     color:#8dff9a;font-size:9px;line-height:1.3;text-align:left;box-shadow:2px 2px 0 #000}
   #mg .mg-time.show{display:block}
   #mg .mg-controls{display:none}
-  #mg .mg-go,#mg .mg-begin{display:none}
+  #mg .mg-go,#mg .mg-begin,#mg .mg-tbtn{display:none}
   #mg .mg-brand{display:none}
 
   #mg .mg-card{position:absolute;inset:0;background:#050505;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;overflow:auto;z-index:3}
@@ -265,9 +233,26 @@
     #mg .mg-pad .u{border-radius:8px 8px 0 0}#mg .mg-pad .l{border-radius:8px 0 0 8px}
     #mg .mg-pad .dn{border-radius:0 0 8px 8px}#mg .mg-pad .r{border-radius:0 8px 8px 0}
     #mg .mg-pad button:active{background:#24271f}
+    /* Moulded like the LOOK button: a darker lip along the bottom and a soft offset shadow. The lip goes only on
+       the edges that really are the bottom of the cross (under the left arm, the down arm and the right arm), so
+       nothing draws a line across the middle where the arms meet the hub. The offset shadow is each arm's own
+       box-shadow, not a filter on the whole pad: on iPhone a filter is redrawn every time an arm is pressed, which
+       made the shadow flicker off and back (twice) after each press. Where an arm's shadow would fall on the cross
+       itself, the next arm or the hub is drawn over it, so only the outside edge shows. */
+    #mg .mg-pad .u{box-shadow:3px 3px 0 rgba(0,0,0,.2)}
+    #mg .mg-pad .l,#mg .mg-pad .r,#mg .mg-pad .dn{box-shadow:inset 0 -4px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
+    #mg .mg-pad .l:active,#mg .mg-pad .r:active,#mg .mg-pad .dn:active{box-shadow:inset 0 -1px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
     #mg .mg-act{position:relative;right:auto;bottom:auto;display:block;width:76px;height:76px;
       background:#9c2b56;border:0;color:#ffe6ef;font-size:10px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
     #mg .mg-act:active{box-shadow:inset 0 -1px 0 rgba(0,0,0,.4);transform:translateY(2px)}
+    /* T: a little time button down and to the left of the main button. It only appears in the mural yard (the one
+       place the time of day changes anything) and does what tapping the clock in the corner of the screen does.
+       The main button never moves when it comes and goes. */
+    #mg .mg-tbtn{position:absolute;right:106px;bottom:12px;width:40px;height:40px;border:0;border-radius:50%;padding:0;
+      align-items:center;justify-content:center;background:#9c2b56;color:#ffe6ef;font-size:11px;
+      box-shadow:inset 0 -4px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2)}
+    #mg .mg-tbtn:active{box-shadow:inset 0 -1px 0 rgba(0,0,0,.4),3px 3px 0 rgba(0,0,0,.2);transform:translateY(2px)}
+    #mg.outdoor.playing:not(.viewing) .mg-tbtn{display:flex}
     /* Viewing a piece: the console face stays above the overlay so both buttons are still under your thumbs.
        The d-pad has nothing to steer, so its side becomes the way through to the site and the other side goes
        back. The label stays "OPEN" whatever the piece is — the overlay already says where it leads, and a button
@@ -301,23 +286,37 @@
   @media (pointer:coarse){
     #mg .mg-look{padding-bottom:126px}
     #mg .mg-look .acts{display:none}
+    /* The screen runs right up under the EXIT button: only EXIT stays on the shell above it. The room name, the
+       clock button and the map sit inside the top of the screen instead (as on desktop), so the view gains the
+       height the strip used to take. They are positioned from the bottom of the top band, i.e. the top of the
+       screen (band + the screen's 12px margin + 8px inside the bezel). */
+    /* z-index: flex "order" puts the screen after the top band when painting, which would hide these under it.
+       2 keeps them over the view but under the start card (3) and the artwork view (4). */
+    #mg .mg-top{padding:9px 14px 0;z-index:2}
+    #mg .mg-top > div:last-child{position:absolute;top:calc(100% + 20px);right:22px}
+    #mg .mg-map{width:84px;height:auto;border-color:#f4f1e6;background:rgba(0,0,0,.6)}
+    #mg .mg-room{position:absolute;top:calc(100% + 20px);left:22px;margin:0;font-size:9px;color:#8dff9a;text-shadow:2px 2px 0 #000}
+    #mg .mg-time{position:absolute;top:calc(100% + 42px);left:22px;margin:0;border-color:#f4f1e6;background:rgba(10,10,10,.82);box-shadow:none}
     #mg .mg-look .txt{overflow:hidden}
     #mg .mg-look .note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     #mg .mg-look .body{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
     #mg .mg-look h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   }`;
   document.head.appendChild(Object.assign(document.createElement("style"), { textContent: css }));
-  document.head.appendChild(Object.assign(document.createElement("link"), { rel: "stylesheet", href: FONT_URL }));
 
-  const toggle = document.createElement("button");
-  toggle.type = "button"; toggle.className = "game-toggle"; toggle.id = "game-toggle";
-  toggle.setAttribute("role", "switch"); toggle.setAttribute("aria-checked", "false");
-  toggle.setAttribute("aria-label", "Museum mode: walk through the work as a retro video game");
-  toggle.title = "Museum mode: walk through the work like a retro video game";
-  toggle.innerHTML = '<span class="gt-sw" aria-hidden="true"><i></i></span><span class="gt-txt"><span>Museum</span><span>mode</span></span>';
   const nav = document.getElementById("nav");
   if (!nav) return;
-  nav.appendChild(toggle);                      // after the Contact button
+  // the switch is in the page's own markup (see index.html); built here only as a fallback if it is ever missing
+  let toggle = document.getElementById("game-toggle");
+  if (!toggle) {
+    toggle = document.createElement("button");
+    toggle.type = "button"; toggle.className = "game-toggle"; toggle.id = "game-toggle";
+    toggle.setAttribute("role", "switch"); toggle.setAttribute("aria-checked", "false");
+    toggle.setAttribute("aria-label", "Museum mode: walk through the work as a retro video game");
+    toggle.title = "Museum mode: walk through the work like a retro video game";
+    toggle.innerHTML = '<span class="gt-sw" aria-hidden="true"><i></i></span><span class="gt-txt"><span>Museum</span><span>mode</span></span>';
+    nav.appendChild(toggle);                    // after the Contact button
+  }
   nav.classList.add("has-game");
   toggle.addEventListener("click", open);
   // iOS is unreliable about :active on a button, so the "switch thrown" look is set from the touch directly
@@ -380,6 +379,7 @@
         <button class="mg-go" type="button">OPEN</button>
         <button class="mg-begin" type="button">START</button>
         <button class="mg-act" type="button">LOOK</button>
+        <button class="mg-tbtn" type="button" aria-label="Change the time of day">T</button>
       </div>
       <div class="mg-brand">ALEX KOCEYAN</div>
       <div class="mg-look" role="dialog" aria-label="Artwork">
@@ -403,6 +403,7 @@
     if (matchMedia("(pointer:coarse)").matches) root.querySelector(".mg-exit span:last-child").textContent = "Exit";
     ui.start.addEventListener("click", begin);
     ui.time.addEventListener("click", cycleTime);
+    root.querySelector(".mg-tbtn").addEventListener("click", cycleTime);
     root.querySelector(".mg-act").addEventListener("click", act);
     root.querySelector(".mg-go").addEventListener("click", () => { if (state.view && state.view.go) state.view.go(); });
     root.querySelector(".mg-begin").addEventListener("click", begin);
@@ -468,7 +469,9 @@
     state.open = true; prevFocus = document.activeElement;
     prevOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
+    // shut the phone menu properly: the drop-down AND the menu button's "open" look (it used to stay green/crossed)
     nav.classList.remove("open");
+    const mb = document.querySelector(".menu-btn"); if (mb) mb.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-checked", "true");
     root.classList.remove("off"); root.classList.add("on");
     showCard();
@@ -541,8 +544,7 @@
       document.fonts && document.fonts.load ? Promise.race([document.fonts.load('16px "Press Start 2P"'), new Promise((r) => setTimeout(r, 2500))]).catch(() => {}) : null,
     ]);
     T = mod; tmpColor = new T.Color();
-    // "highp" and no alpha: a phone will otherwise happily hand back a low-precision buffer, and the lamp light
-    // pooled on the grass is exactly the kind of wide, soft gradient that falls apart in one.
+    // "highp" and no alpha: a phone will otherwise happily hand back a low-precision buffer.
     renderer = new T.WebGLRenderer({ canvas: ui.view, antialias: false, powerPreference: "low-power", precision: "highp", alpha: false });
     renderer.setPixelRatio(1);
     scene = new T.Scene();
@@ -702,7 +704,7 @@
   function timeLabel() {
     let t = "TIME: " + TIME_NAMES[yard.mode];
     if (yard.mode === 0) t += " " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toUpperCase();
-    ui.time.textContent = t + (matchMedia("(pointer:coarse)").matches ? " (TAP)" : " [T]");
+    ui.time.textContent = t + (matchMedia("(pointer:coarse)").matches ? " (T)" : " [T]");
   }
   function scaleUV(g, u, v) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * u, uv.getY(i) * v); return g; }
   function brickTex(base, mortar) {          // 4 m x 4 m: bricks 1 m long, half a metre tall
@@ -750,28 +752,30 @@
     };
     low(M.x0, M.x1 + 0.5, M.z0 - 0.5, M.z0); low(M.x1, M.x1 + 0.5, M.z0, M.z1); low(M.x0, M.x1 + 0.5, M.z1, M.z1 + 0.5);
 
-    // soft pools of lamp light on the ground, only visible after dark
-    // Everything else in here is nearest-filtered on purpose — that is the look. A pool of light is the exception:
-    // at 32px blown up across nine metres each texel became a 28cm block, so the gradient came out as rings of
-    // flat colour fighting each other over the grass. Bigger texture, smoothly filtered.
-    const glowTex = canvasTex(128, 128, (g) => {
-      const r = g.createRadialGradient(64, 64, 2, 64, 64, 64);
-      r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.45, "rgba(255,255,255,.42)");
-      r.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = r; g.fillRect(0, 0, 128, 128);
-    });
-    glowTex.magFilter = glowTex.minFilter = T.LinearFilter;
+    // Soft pools of lamp light on the ground, only visible after dark.
+    // The glow texture is computed, NOT drawn on a canvas. A canvas stores colour premultiplied by alpha, and
+    // Safari on iOS dithers gradients with a little per-channel noise; when that is handed to WebGL it is divided
+    // back out by alpha, and across a faint gradient the noise comes back as confetti — pink, green and blue
+    // specks all over the pool. (Desktop Chrome draws the same gradient cleanly, which is why it only showed on
+    // phones, and why nothing done to the depth buffer ever touched it.) Here every texel is exactly white and
+    // only the alpha varies, so there is no colour in it to go wrong.
+    const GS = 128, glowPx = new Uint8Array(GS * GS * 4);
+    for (let y = 0; y < GS; y++) for (let x = 0; x < GS; x++) {
+      const t = Math.min(1, Math.max(0, (Math.hypot(x + 0.5 - GS / 2, y + 0.5 - GS / 2) - 2) / (GS / 2 - 2)));
+      const al = t < 0.45 ? 1 - (t / 0.45) * 0.58 : 0.42 * (1 - (t - 0.45) / 0.55);   // 1 -> .42 at 45% -> 0 at the rim
+      const i = (y * GS + x) * 4;
+      glowPx[i] = glowPx[i + 1] = glowPx[i + 2] = 255; glowPx[i + 3] = Math.round(al * 255);
+    }
+    const glowTex = new T.DataTexture(glowPx, GS, GS, T.RGBAFormat);
+    glowTex.colorSpace = T.SRGBColorSpace; glowTex.magFilter = glowTex.minFilter = T.LinearFilter;
+    glowTex.generateMipmaps = false; glowTex.needsUpdate = true;
     const pool = (x, z, sx, sz, max) => {
-      // polygonOffset nudges these in the depth buffer rather than in space. Phones often run a 16-bit depth buffer,
-      // and with the far plane this far out a few centimetres of clearance is below what it can resolve — so the
-      // pool and the grass kept swapping places per pixel, which is what the speckled colour was.
-      // dithering matters here: phones often run a 16-bit colour buffer, and a wide additive gradient across it
-      // posterises into hard rings of colour. Dithering trades that for noise you cannot see at this scale.
+      // depthWrite off + polygonOffset keep the plane from fighting the grass it lies on
       const mat = new T.MeshBasicMaterial({ map: glowTex, color: 0xffd58a, transparent: true, opacity: 0,
-        blending: T.AdditiveBlending, depthWrite: false, dithering: true,
+        blending: T.AdditiveBlending, depthWrite: false,
         polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
       const m = new T.Mesh(new T.PlaneGeometry(1, 1), mat);
-      m.rotation.x = -Math.PI / 2; m.position.set(x, 0.06, z); m.scale.set(sx, sz, 1); scene.add(m);   // clear of the grass: the depth buffer is coarse this far out
+      m.rotation.x = -Math.PI / 2; m.position.set(x, 0.06, z); m.scale.set(sx, sz, 1); scene.add(m);
       yard.glows.push({ mat, max });
     };
     const bulb = (w, hh, d, x, y, z) => {
@@ -1166,7 +1170,7 @@
     const face = (sl, t = 0) => ({ x: sl.cx + sl.nx * 0.3 + (sl.along === "x" ? t : 0), z: sl.cz + sl.nz * 0.3 + (sl.along === "z" ? t : 0), nx: sl.nx, nz: sl.nz });
     MURALS.slice(0, SLABS.length - 1).forEach((m, i) => {
       const sl = SLABS[i], fm = first(m);
-      const d = { tag: "MURAL · " + m.tag.toUpperCase(), title: m.name, body: m.text, img: src(fm.f, 1800), goLabel: "SEE IT ON THE MURALS PAGE", go: () => leaveTo("#murals") };
+      const d = { tag: "MURAL · " + m.tag.toUpperCase(), title: m.name, body: m.text, img: src(fm.f, 1800), goLabel: "SEE IT ON THE MURALS PAGE", go: () => leaveTo("#murals", null, MURALS.indexOf(m)) };
       if (fm.crop) bakeCrop(src(fm.f, 1800), fm.crop, (u) => { d.img = u; });   // the view matches the cropped wall
       hang({
         url: src(fm.f, 1200), ar: 1.6, crop: fm.crop || null, maxW: sl.w - 0.8, maxH: sl.h - 1.1, outdoor: true, frame: null, bottom: 0.55, ...face(sl),
@@ -1176,7 +1180,7 @@
     const extras = [];
     MURALS.forEach((m) => m.rows.flat().forEach((it) => {
       if (it && it.f && it !== first(m) && it.cap && /progress/i.test(it.cap) && extras.length < 2)
-        extras.push({ url: src(it.f, 720), ar: it.w / it.h, data: { tag: "MURAL · IN PROGRESS", title: m.name, note: "Process photo", body: m.text, img: src(it.f, 1600), goLabel: "SEE IT ON THE MURALS PAGE", go: () => leaveTo("#murals") } });
+        extras.push({ url: src(it.f, 720), ar: it.w / it.h, data: { tag: "MURAL · IN PROGRESS", title: m.name, note: "Process photo", body: m.text, img: src(it.f, 1600), goLabel: "SEE IT ON THE MURALS PAGE", go: () => leaveTo("#murals", null, MURALS.indexOf(m)) } });
     }));
     const last = SLABS[SLABS.length - 1];
     extras.forEach((e, i) => hang({ ...e, maxW: 3.3, maxH: 3.9, outdoor: true, frame: 0xf1ecdc, bottom: 0.9, ...face(last, (i - (extras.length - 1) / 2) * 4.4) }));
@@ -1359,10 +1363,24 @@
   }
   // `file` (illustration only): once the page is up, open that exact piece rather than dropping you at the top of
   // the gallery to go hunting for it. The grid is rebuilt by the router, so it takes a few tries before it is there.
-  function leaveTo(hash, file) {
+  // `mural` (index into MURALS): land on that mural's own section of the murals page, not the top of it.
+  function leaveTo(hash, file, mural) {
     close(false);   // you are going somewhere else: leave the focus for the page, not the button you came from
     if (hash === "#about") { const a = document.querySelector('nav a[data-nav="about"]'); if (a) return a.click(); }
     if (location.hash === hash) dispatchEvent(new HashChangeEvent("hashchange")); else location.hash = hash;
+    if (mural != null && mural >= 0) {
+      // the router jumps to the top when the page changes, so this runs after it - and again a moment later,
+      // in case pictures above the section were still settling into place
+      const land = () => {
+        const art = document.querySelectorAll("#murals-list .mural")[mural], hd = document.querySelector("header .bar");
+        if (!art) return;
+        const el = art.querySelector("h3") || art;                       // its heading sits just under the bar
+        const y = el.getBoundingClientRect().top + scrollY - (hd ? hd.offsetHeight : 80) - 28;
+        try { scrollTo({ top: Math.max(0, y), behavior: "instant" }); } catch (e) { scrollTo(0, Math.max(0, y)); }
+      };
+      [60, 350, 900].forEach((t) => setTimeout(land, t));
+      return;
+    }
     if (!file) return;
     let tries = 0;
     const open = () => {
@@ -1480,7 +1498,7 @@
 
     // HUD
     const rk = roomAt(player.x, player.z);
-    if (rk && rk !== state.room) { state.room = rk; ui.room.textContent = "> " + ROOMS[rk].name; ui.time.classList.toggle("show", !!ROOMS[rk].outdoor); }
+    if (rk && rk !== state.room) { state.room = rk; ui.room.textContent = "> " + ROOMS[rk].name; ui.time.classList.toggle("show", !!ROOMS[rk].outdoor); root.classList.toggle("outdoor", !!ROOMS[rk].outdoor); }
     // what is in front of you: a piece to look at, a person to listen to, or a bench to sit on.
     // When an NPC is very close (< 2 m) they take priority over art so you can actually talk to them
     // even when they are standing in front of a piece.
@@ -1498,17 +1516,17 @@
       if (state.looking) { label = "BACK"; }
       else if (state.talking) {
         const isV = state.talking.kind === "visitor";
-        title = isV ? "GALLERY VISITOR" : "SECURITY GUARD"; key = coarse ? "TAP DONE" : "PRESS [E] WHEN YOU ARE DONE"; label = "DONE";
+        title = isV ? "GALLERY VISITOR" : "SECURITY GUARD"; key = coarse ? "PRESS DONE" : "PRESS [E] WHEN YOU ARE DONE"; label = "DONE";
       }
-      else if (state.sitting) { title = "SITTING"; key = coarse ? "TAP STAND" : "PRESS [E] TO STAND"; label = "STAND"; }
-      else if (state.near) { title = state.near.data.title; key = coarse ? "TAP LOOK" : "PRESS [E] TO LOOK"; }
+      else if (state.sitting) { title = "SITTING"; key = coarse ? "PRESS STAND" : "PRESS [E] TO STAND"; label = "STAND"; }
+      else if (state.near) { title = state.near.data.title; key = coarse ? "PRESS LOOK" : "PRESS [E] TO LOOK"; }
       else if (state.guard) {
         const isV = state.guard.kind === "visitor";
         title = isV ? "GALLERY VISITOR" : "SECURITY GUARD";
-        key = coarse ? "TAP LISTEN" : "PRESS [E] TO LISTEN";
+        key = coarse ? "PRESS LISTEN" : "PRESS [E] TO LISTEN";
         label = "LISTEN";
       }
-      else if (state.bench) { title = "BENCH"; key = coarse ? "TAP SIT" : "PRESS [E] TO SIT"; label = "SIT"; }
+      else if (state.bench) { title = "BENCH"; key = coarse ? "PRESS SIT" : "PRESS [E] TO SIT"; label = "SIT"; }
       if (title) { ui.capT.textContent = title; ui.capK.textContent = key; }
       ui.cap.classList.toggle("show", !!title);
       ui.act.textContent = label;
