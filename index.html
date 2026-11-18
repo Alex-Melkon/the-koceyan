@@ -1111,14 +1111,46 @@ const MURALS = [
 const $ = s => document.querySelector(s);
 let lbSet = [], lbIdx = 0;
 
+/* Pictures load at the size they are actually shown at.
+   data-w is the most a spot will ever need (e.g. 1400 for a full-width photo on a big monitor). Each picture's real
+   width on screen is measured and only that much is fetched (times the screen's pixel density, capped at 2x, past
+   which phones show no visible difference), so a phone, or a picture in a narrow column, gets a smaller file. A
+   picture on a page that is not showing yet has no size, so it waits in PENDING and is sized when show() puts its
+   page on screen. The browser's own lazy loading still holds each one back until it is near the screen. Pictures
+   that fill a box by cropping (object-fit:cover) keep data-w: their visible width says nothing about the crop. */
+const PENDING = new Set();
+function fitW(im, want){
+  // offsetWidth, not getBoundingClientRect: it ignores a running entrance animation (the project logos grow in from
+  // smaller), which would otherwise be measured mid-animation and fetched too small
+  const w = im.offsetWidth || im.getBoundingClientRect().width, need = Math.ceil(w * Math.min(window.devicePixelRatio || 1, 2));
+  // a cropped picture is drawn larger than its box (only part of it shows), so its full drawn width is what counts,
+  // even past data-w; before, crops like DJ Hayko's three social posts were fetched too small and looked soft
+  if (im.closest(".crop, .cb, .cbx")) return Math.max(need, 400);
+  // the big logo or photo at the top of a project sizes itself from the picture, so before it loads there is nothing
+  // to measure (only its alt text): keep data-w
+  if (im.closest(".proj-hero")) return want;
+  // cropping to fill a box (object-fit:cover) hides how wide the picture is really drawn, so keep data-w; a photo in
+  // a row is the exception, since its box is cut to the photo's own shape and nothing is hidden
+  if (getComputedStyle(im).objectFit === "cover" && !im.closest(".row figure")) return want;
+  return Math.min(want, need);
+}
+function place(im){
+  if (!im.isConnected) { PENDING.delete(im); return; }
+  if (!im.offsetWidth && !im.getBoundingClientRect().width && !im.closest("header")) return;     // not on screen yet: stays pending
+  PENDING.delete(im);
+  im.src = src(im._f, im.closest("header") ? im._w : fitW(im, im._w));
+}
+function placePending(){ PENDING.forEach(place); }
 function hydrate(root=document){
   root.querySelectorAll("img[data-src]").forEach(im=>{
-    im.src = src(im.dataset.src, +im.dataset.w || 1400);
+    im._f = im.dataset.src; im._w = +im.dataset.w || 1400;
     im.loading = im.closest("header") ? "eager" : "lazy";
     im.decoding = "async";
     im.removeAttribute("data-src");
+    PENDING.add(im); place(im);
   });
 }
+addEventListener("resize", placePending);
 
 function rowHTML(row, setName, keep, mstack, m2){
   // cap each row's height (~620px) so tall pieces never fill more than a screen
@@ -1681,6 +1713,7 @@ function show(view, navKey){
   document.body.dataset.view = view;
   setAccent(SECTION_ACCENT[navKey] || SECTION_ACCENT[view] || "green");
   document.querySelectorAll("section.view").forEach(s=>s.classList.toggle("show", s.id==="v-"+view));
+  placePending();   // pictures on the page that just appeared can now be measured and sized
   document.querySelectorAll("nav a[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===navKey));
   closeNav();
   curView = view;
@@ -2070,7 +2103,8 @@ renderMurals();
   // (skipped when the browser asks to save data), so by the time anyone taps a cover it is usually already here.
   let DATAP = null;
   const data = () => DATAP || (DATAP = fetch("book-data.json").then(r => { if (!r.ok) throw new Error("book-data " + r.status); return r.json(); }).catch(e => { DATAP = null; throw e; }));
-  addEventListener("load", () => { if (navigator.connection && navigator.connection.saveData) return; setTimeout(() => data().catch(() => {}), 3000); });
+  // ...but not on a phone, where it would be 5 MB of mobile data spent on comics nobody may open: there they load on tap
+  addEventListener("load", () => { if ((navigator.connection && navigator.connection.saveData) || matchMedia("(hover:none), (max-width:720px)").matches) return; setTimeout(() => data().catch(() => {}), 3000); });
   const setA = (lf, a) => { lf.style.transform = "perspective(2600px) rotateY(" + a + "deg)"; };
   const restZ = i => i < cur ? i + 1 : leaves.length - i;
   function size(){
